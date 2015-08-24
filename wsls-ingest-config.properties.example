@@ -1,0 +1,19 @@
+# The base URL, username and password for the fedora 3
+# instance that is the system of record for WSLS resources.
+wsls-fedora-url:
+wsls-fedora-username:
+wsls-fedora-password:
+
+# The filename (path) to the master spreadsheet
+wsls-spreadsheet-filename:
+
+# The mount path on the fedora 4 server (preservation staging
+# server) for the WSLS preservation data exists.
+wsls-preservation-mount-path:
+
+# The path to the deed of gift PDF file for WSLS materials.
+wsls-deed-of-gift-path:
+
+# The path to the PDF version of the terms of use for WSLS materials.
+wsls-terms-of-use-path:
+

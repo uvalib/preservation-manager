@@ -1,0 +1,12 @@
+# This optional properties file (auth.properties) is used by the
+# HttpHelper class to supply credentials when following URIs to 
+# external systems that may be found in Fedora 4 resources. 
+
+# Hostname for an external resource protected by basic authentication
+host:
+
+# Username for that service
+username:
+
+# Password for that service
+password:

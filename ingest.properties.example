@@ -1,0 +1,12 @@
+# The URL to the fedora 4 preservation staging repository
+f4-url:
+
+# The URL to a fuseki sparql endpoint that exposes queries over
+# the content in Fedora 4
+triplestore-url:
+
+# AP Trust Quota in bytes 
+aptrust-quota:109951162777600
+
+# The filename to which an ingest report should be written.
+ingest-report:
