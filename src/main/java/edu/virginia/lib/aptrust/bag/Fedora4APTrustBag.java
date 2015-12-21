@@ -97,25 +97,30 @@ public class Fedora4APTrustBag extends APTrustBag {
 
         // locate or export any contained binaries
         for (RDFNode n : f4client.getPropertyValues(uri, uri, RdfConstants.LDP_CONTAINS)) {
-            final URI binaryUri = new URI(n.asResource().getURI());
-            final URI metadataUri = new URI(binaryUri.toString() + "/fcr:metadata");
-            final String mimeType = f4client.getSingleRequiredPropertyValue(metadataUri, new URI(binaryUri.toString()), HAS_MIME_TYPE);
-            if (mimeType.startsWith("message/external-body")) {
-                // this is a convention we use to point to an external file... the path of that file is stored elsewhere...
-                final String fileURI = f4client.getSingleRequiredPropertyValue(metadataUri, new URI(binaryUri.toString()), RdfConstants.FILE_URI);
-                File file = new File(new URI(fileURI));
-                if (file.exists()) {
-                    payloadFiles.add(file);
+            final URI containedUri = new URI(n.asResource().getURI());
+            final URI metadataUri = new URI(containedUri.toString() + "/fcr:metadata");
+            Model containedM = f4client.getAllProperties(metadataUri);
+            if (Fedora4Client.hasType(containedM, containedUri.toString(), RdfConstants.FEDORA_BINARY)) {
+                final String mimeType = f4client.getSingleRequiredPropertyValue(metadataUri, new URI(containedUri.toString()), HAS_MIME_TYPE);
+                if (mimeType.startsWith("message/external-body")) {
+                    // this is a convention we use to point to an external file... the path of that file is stored elsewhere...
+                    final String fileURI = f4client.getSingleRequiredPropertyValue(metadataUri, new URI(containedUri.toString()), RdfConstants.FILE_URI);
+                    File file = new File(new URI(fileURI));
+                    if (file.exists()) {
+                        payloadFiles.add(file);
+                    } else {
+                        LOGGER.warn("Unable to locate file " + file.getAbsolutePath() + ", downloading copy!");
+                        file = downloadURIToTempFile(containedUri.toString(), file.getName());
+                        payloadFiles.add(file);
+                        tempFiles.add(file);
+                    }
                 } else {
-                    LOGGER.warn("Unable to locate file " + file.getAbsolutePath() + ", downloading copy!");
-                    file = downloadURIToTempFile(binaryUri.toString(), file.getName());
+                    final File file = downloadURIToTempFile(containedUri.toString(), f4client.getSingleRequiredPropertyValue(metadataUri, new URI(containedUri.toString()), RdfConstants.FILENAME));
                     payloadFiles.add(file);
                     tempFiles.add(file);
                 }
             } else {
-                final File file = downloadURIToTempFile(binaryUri.toString(), f4client.getSingleRequiredPropertyValue(metadataUri, new URI(binaryUri.toString()), RdfConstants.FILENAME));
-                payloadFiles.add(file);
-                tempFiles.add(file);
+                LOGGER.info("Skipping contained resource " + containedUri + " because it wasn't binary.");
             }
         }
 

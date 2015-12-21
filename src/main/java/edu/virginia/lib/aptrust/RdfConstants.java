@@ -10,6 +10,8 @@ public interface RdfConstants {
     String PCDM_NAMESPACE = "http://pcdm.org/models#";
     String PREMIS_NAMESPACE = "http://www.loc.gov/premis/rdf/v1#";
     
+    String FEDORA_BINARY = "http://fedora.info/definitions/v4/repository#Binary";
+    
     /**
      * The class URI for external resources.
      */
@@ -74,6 +76,13 @@ public interface RdfConstants {
      * premis:hasEvent
      */
     String PREMIS_HAS_EVENT = PREMIS_NAMESPACE + "hasEvent";
+    
+    /**
+     * A predicate that links a resource to an event that was later discovered to have
+     * failed.  This predicate should replace the premis:hasEvent predicate when the
+     * discovery is made.
+     */
+    String PRES_HAS_FAILED_EVENT = UVA_PRESERVATION_NAMESPACE + "hasFailedEvent";
     
     String PREMIS_HAS_EVENT_TYPE = PREMIS_NAMESPACE + "hasEventType";
     

@@ -158,6 +158,16 @@ public class Fedora4Client {
         addLiteralProperty(subject, predicate, literal);
     }
 
+    public void updateWithSparql(URI subject, String sparqlUpdate) throws UnsupportedEncodingException, FcrepoOperationFailedException {
+        try {
+            FcrepoResponse r = getClient().patch(subject, new ByteArrayInputStream(sparqlUpdate.getBytes("UTF-8")));
+            assertSuccess(r);
+        } catch (FcrepoOperationFailedException ex) {
+            LOGGER.warn("Error for patch of \"" + sparqlUpdate + "\"", ex);
+            throw ex;
+        }
+    }
+    
     public void addURIProperty(URI subject, String predicate, URI uri) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException {
         Name n = new Name(predicate);
         String sparqlUpdate = "PREFIX " + n.getPrefix() + ": <" + n.getNamespace() + ">\n"
