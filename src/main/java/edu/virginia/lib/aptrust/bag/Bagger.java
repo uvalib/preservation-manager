@@ -61,6 +61,9 @@ public class Bagger {
         long currentUsage = getPayloadBytesSubmitted();
         LOGGER.info(currentUsage + " of " + quota + " bytes used.");
         List<Map<String, String>> resultPage = getNextPageOfWSLSResultsToSubmit(100);
+        if (resultPage.size() == 0) {
+            System.out.println("No items need to be sent to AP Trust.");
+        }
         while (resultPage != null && resultPage.size() > 0) {
             for (Map<String, String> r : resultPage) {
                 final String uri = r.get("s");
