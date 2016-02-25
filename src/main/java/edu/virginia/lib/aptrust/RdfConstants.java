@@ -78,9 +78,24 @@ public interface RdfConstants {
     String PREMIS_HAS_EVENT = PREMIS_NAMESPACE + "hasEvent";
     
     /**
+     * premis:hasEventOutcomeInformation
+     */
+    String PREMIS_HAS_EVENT_OUTCOME_INFORMATION = PREMIS_NAMESPACE + "hasEventOutcomeInformation";
+    
+    String PREMIS_HAS_EVENT_OUTCOME = PREMIS_NAMESPACE + "hasEventOutcome";
+    
+    String APTRUST_FAILED = "failed";
+    
+    /**
+     * pres:APTrustEventOutcomeInformation (premis:EventOutcomeInformation)
+     */
+    String AP_TRUST_EVENT_OUTCOME_INFORMATION = UVA_PRESERVATION_NAMESPACE + "APTrustEventOutcomeInformation";
+    
+    /**
      * A predicate that links a resource to an event that was later discovered to have
      * failed.  This predicate should replace the premis:hasEvent predicate when the
      * discovery is made.
+     * @deprecated
      */
     String PRES_HAS_FAILED_EVENT = UVA_PRESERVATION_NAMESPACE + "hasFailedEvent";
     

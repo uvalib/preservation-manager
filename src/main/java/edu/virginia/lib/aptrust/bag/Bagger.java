@@ -153,6 +153,10 @@ public class Bagger {
                 .get(0).get("count").equals("0");
     }
 
+    /**
+     * This queries the triplestore and returns only items that are eligible for submission and
+     * have not yet been submitted (even if they were submitted and failed).
+     */
     private List<Map<String, String>> getNextPageOfWSLSResultsToSubmit(int pageSize) throws IOException {
         return triplestore.getQueryResponse("PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                 + "PREFIX dc: <http://purl.org/dc/elements/1.1/>\n" + "SELECT DISTINCT ?s ?wslsid\n" + "WHERE {\n"

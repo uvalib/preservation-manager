@@ -1,23 +1,19 @@
 package edu.virginia.lib.aptrust.ingest;
 
 import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProperty;
-import static edu.virginia.lib.aptrust.RdfConstants.PREMIS_HAS_EVENT;
-import static edu.virginia.lib.aptrust.RdfConstants.PREMIS_NAMESPACE;
-import static edu.virginia.lib.aptrust.RdfConstants.PRES_HAS_FAILED_EVENT;
-import static edu.virginia.lib.aptrust.RdfConstants.UVA_PRESERVATION_NAMESPACE;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
 import org.fcrepo.camel.FcrepoOperationFailedException;
 
+import edu.virginia.lib.aptrust.RdfConstants;
 import edu.virginia.lib.aptrust.helper.Fedora4Client;
 import edu.virginia.lib.aptrust.helper.FusekiReader;
 
@@ -29,16 +25,10 @@ import edu.virginia.lib.aptrust.helper.FusekiReader;
  * This script allows a list of IDs to be marked as failed and then
  * sent again.
  * 
- * It's not clear the best way in the metadata to explain this.  Technically
- * our "ingest" premis event never occurred and we should have used another
- * value to indicate what happened (that we sent it off for ingestion).
- * 
- * Until we get a better handle on how to track these events, the asynchronous
- * process of reporting failed ingests will simply remove the premis:hasEvent
- * link to that event, and replace it with a "pres:hasFailedIngestEvent"
- * link.
+ * Our current approach is to add an APTrustEventOutcomeInformation to the 
+ * event with a premis:hasEventOutcome property with the "failed" literal value.
  */
-public class ReportFailedIngests {
+public class ReportFailedIngests implements RdfConstants {
 
     /**
      * For administrative purposes preserved content belongs to exactly one
@@ -50,7 +40,7 @@ public class ReportFailedIngests {
      */
     private static final String[] KNOWN_CONTAINER = new String[] { "wsls" };
     
-    public static void main(String [] args) throws IOException, URISyntaxException, FcrepoOperationFailedException {
+    public static void main(String [] args) throws Exception {
         if (args.length != 1) {
             System.err.println("Missing argument: you must provide a filename containing the IDs of packages that failed to ingest.");
             System.exit(1);
@@ -89,7 +79,7 @@ public class ReportFailedIngests {
                     throw new RuntimeException("No event could be found in the repository for " + url + "!");
                 }
             }
-            markEventAsFailed(url, eventURI, f4Client);
+            markEventAsFailed(eventURI, f4Client);
             System.out.println("Marked " + url + " has having had a failed event " + eventURI + ".");
         }
     }
@@ -126,17 +116,23 @@ public class ReportFailedIngests {
         return new URI(response);
     }
     
-    private static void markEventAsFailed(final String resource, final URI event, Fedora4Client f4Client) throws UnsupportedEncodingException, FcrepoOperationFailedException, URISyntaxException {
-        final String addFailed = "PREFIX premis: <" + PREMIS_NAMESPACE + ">\n"
-                + "PREFIX pres: <" + UVA_PRESERVATION_NAMESPACE + ">\n"
-                + "INSERT DATA { <> pres:hasFailedEvent <" + event + "> }\n";
-        f4Client.updateWithSparql(new URI(resource), addFailed);
-        
-        final String removeFailed = "PREFIX premis: <" + PREMIS_NAMESPACE + ">\n"
-                + "PREFIX pres: <" + UVA_PRESERVATION_NAMESPACE + ">\n"
-                + "DELETE DATA { <> premis:hasEvent <" + event + "> }\n";
-        f4Client.updateWithSparql(new URI(resource), removeFailed);
-
+    public static void markEventAsFailed(final URI event, Fedora4Client f4Client) throws Exception {
+        if (f4Client.getPropertyValues(event, event, PREMIS_HAS_EVENT_OUTCOME_INFORMATION).isEmpty()) {
+            final URI outcome = f4Client.createResource(event.toString());
+            try {
+                f4Client.addURIProperty(outcome, RDF_TYPE, new URI(AP_TRUST_EVENT_OUTCOME_INFORMATION));
+                f4Client.addLiteralProperty(outcome, PREMIS_HAS_EVENT_OUTCOME, "failure");
+                f4Client.addURIProperty(event, PREMIS_HAS_EVENT_OUTCOME_INFORMATION, outcome);
+            } catch (RuntimeException ex) {
+                System.err.println("Error while updating new event outcome " + outcome + "!");
+                throw ex;
+            } catch (Exception ex) {
+                System.err.println("Error while updating new event outcome " + outcome + "!");
+                throw ex;
+            }
+        } else {
+            throw new RuntimeException("Event " + event + " already has a reported outcome!");
+        }
     }
     
     private static String getURI(final String baseURL, final String container, final String shortId) {

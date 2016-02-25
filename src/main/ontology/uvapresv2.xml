@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<rdf:RDF xml:base="http://www.loc.gov/premis/rdf/v1"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#" 
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:skos="http://www.w3.org/2004/02/skos/core#">
+    <owl:Ontology rdf:about="http://fedora.lib.virginia.edu/preservation#">
+        <owl:versionInfo>v2</owl:versionInfo>
+        <rdfs:label>University of Virginia AP Trust preservation Metadata</rdfs:label>
+        <rdfs:comment>This ontology identifies the classes and properties used to describe
+            preservation metadata in RDF. It is meant to be used in connection with Premis and has
+            events and properties specifically related to our AP Trust workflow.</rdfs:comment>
+    </owl:Ontology>
+
+    <owl:Class rdf:about="http://fedora.lib.virginia.edu/preservation#ExternalResource">
+        <rdfs:subClassOf>
+            <owl:Class rdf:about="http://fedora.info/definitions/v4/repository#Resource"/>
+        </rdfs:subClassOf>
+        <skos:definition>A resource that represents a placeholder for a single resource managed in
+            an external system.</skos:definition>
+    </owl:Class>
+    
+    <owl:Class rdf:about="http://fedora.lib.virginia.edu/preservation#ExternalSystem">
+        <rdfs:subClassOf>
+            <owl:Class rdf:about="http://fedora.info/definitions/v4/repository#Resource"/>
+        </rdfs:subClassOf>
+        <skos:definition>A resource that describes an external system.</skos:definition>
+    </owl:Class>
+    
+    <owl:Class rdf:about="http://fedora.lib.virginia.edu/preservation#File">
+        <rdfs:subClassOf>
+            <owl:Class rdf:about="http://fedora.info/definitions/v4/repository#Resource"/>
+        </rdfs:subClassOf>
+        <skos:definition>A resource that represents a File on that is or was on disk somewhere.</skos:definition>
+    </owl:Class>
+    
+    <owl:Class rdf:about="http://fedora.lib.virginia.edu/preservation#APTrustEvent">
+        <rdfs:subClassOf>
+            <owl:Class rdf:about="http://www.loc.gov/premis/rdf/v1#Event"/>
+        </rdfs:subClassOf>
+        <skos:definition>A resource that represents an event relating to AP Trust.</skos:definition>
+    </owl:Class>
+
+    <owl:Class rdf:about="http://fedora.lib.virginia.edu/preservation#APTrustEventOutcomeInformation">
+        <rdfs:subClassOf>
+            <owl:Class rdf:about="http://www.loc.gov/premis/rdf/v1#Event"/>
+        </rdfs:subClassOf>
+        <skos:definition>A resource that represents an event relating to AP Trust.</skos:definition>
+    </owl:Class>
+
+    <owl:Class rdf:about="http://fedora.lib.virginia.edu/preservation#PreservationPackage">
+        <rdfs:subClassOf>
+            <owl:Class rdf:about="http://www.loc.gov/premis/rdf/v1#Object"/>
+        </rdfs:subClassOf>
+        <skos:definition>A resource (which may be a container that aggregates resources) that is intended to be "preserved" in some manner.</skos:definition>
+    </owl:Class>
+    
+    <owl:ObjectProperty rdf:about="http://fedora.lib.virginia.edu/preservation#externalId">
+        <rdfs:label xml:lang="eng">is identified in external system as</rdfs:label>
+        <rdfs:domain rdf:resource="http://fedora.lib.virginia.edu/preservation#ExternalResource"/>
+    </owl:ObjectProperty>
+    
+    <owl:ObjectProperty rdf:about="http://fedora.lib.virginia.edu/preservation#externalSystem">
+        <rdfs:label xml:lang="eng">is managed by the external system</rdfs:label>
+        <rdfs:domain rdf:resource="http://fedora.lib.virginia.edu/preservation#ExternalResource" />
+        <rdfs:range rdf:resource="http://fedora.lib.virginia.edu/preservation#ExternalSystem"/>
+    </owl:ObjectProperty>
+    
+    <owl:ObjectProperty rdf:about="http://fedora.lib.virginia.edu/preservation#hasFile">
+        <rdfs:label xml:lang="eng">has file</rdfs:label>
+        <rdfs:domain rdf:resource="http://fedora.info/definitions/v4/repository#Resource" />
+        <rdfs:range rdf:resource="http://fedora.lib.virginia.edu/preservation#File"/>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="http://fedora.lib.virginia.edu/preservation#hasBinary">
+        <rdfs:label xml:lang="eng">has binary</rdfs:label>
+        <rdfs:domain rdf:resource="http://fedora.info/definitions/v4/repository#File" />
+        <rdfs:range rdf:resource="http://fedora.info/definitions/v4/repository#Binary"/>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="http://fedora.lib.virginia.edu/preservation#hasTechnicalMetadata">
+        <rdfs:label xml:lang="eng">has technical metadata</rdfs:label>
+        <rdfs:domain rdf:resource="http://fedora.info/definitions/v4/repository#File" />
+    </owl:ObjectProperty>
+    
+</rdf:RDF>
