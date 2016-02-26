@@ -1,20 +1,5 @@
 package edu.virginia.lib.aptrust.bag;
 
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.RDFNode;
-
-import edu.virginia.lib.aptrust.RdfConstants;
-import edu.virginia.lib.aptrust.bags.APTrustBag;
-import edu.virginia.lib.aptrust.bags.APTrustInfo;
-import edu.virginia.lib.aptrust.bags.BagInfo;
-import edu.virginia.lib.aptrust.helper.Fedora4Client;
-import edu.virginia.lib.aptrust.helper.FusekiReader;
-import edu.virginia.lib.aptrust.helper.HttpHelper;
-
-import org.fcrepo.camel.FcrepoOperationFailedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,7 +11,21 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import org.fcrepo.camel.FcrepoOperationFailedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.RDFNode;
+
+import edu.virginia.lib.aptrust.RdfConstants;
+import edu.virginia.lib.aptrust.bags.APTrustBag;
+import edu.virginia.lib.aptrust.bags.APTrustInfo;
+import edu.virginia.lib.aptrust.bags.BagInfo;
+import edu.virginia.lib.aptrust.helper.Fedora4Client;
+import edu.virginia.lib.aptrust.helper.FusekiReader;
+import edu.virginia.lib.aptrust.helper.HttpHelper;
 
 /**
  * Extends the basic APTrustBag to support bagging Fedora 4 resources produced using the AvalonIngest code.
@@ -66,6 +65,13 @@ public class Fedora4APTrustBag extends APTrustBag {
         return uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
     }
 
+    /**
+     * The payload files include
+     * 1.  a fedora 4 export of the resource (data/exported-fedora-4-resource.xml)
+     * 2.  a fedora 3 export if the resource represented a single managed fedora 3 resource (data/exported-fedora-4-resource.xml)
+     * 3.  all immediately contained binary files (data/filename)
+     * 4.  all immediately contained external resources (data/pid.xml)   
+     */
     @Override
     protected List<File> getPayloadFiles() throws Exception {
         if (payloadFiles != null) {
@@ -95,7 +101,9 @@ public class Fedora4APTrustBag extends APTrustBag {
             tempFiles.add(file);
         }
 
-        // locate or export any contained binaries
+
+        // locate or export any contained binaries or ExternalResource's
+        URI nestedExternalSystemResourceURI = null;
         for (RDFNode n : f4client.getPropertyValues(uri, uri, RdfConstants.LDP_CONTAINS)) {
             final URI containedUri = new URI(n.asResource().getURI());
             final URI metadataUri = new URI(containedUri.toString() + "/fcr:metadata");
@@ -119,17 +127,28 @@ public class Fedora4APTrustBag extends APTrustBag {
                     payloadFiles.add(file);
                     tempFiles.add(file);
                 }
+            } else if (Fedora4Client.hasType(containedM,  containedUri.toString(), RdfConstants.EXTERNAL_RESOURCE_TYPE)) {
+                final String externalId = Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.EXTERNAL_ID);
+                final String externalSystemId = Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.EXTERNAL_SYSTEM);
+                if (nestedExternalSystemResourceURI == null) {
+                    nestedExternalSystemResourceURI = new URI(externalSystemId);
+                } else if (!nestedExternalSystemResourceURI.equals(new URI(externalSystemId))) {
+                    throw new RuntimeException("Nested system mismatch for " + containedUri + ": " + externalSystemId + " != " + nestedExternalSystemResourceURI);
+                }
+                final File file = downloadURIToTempFile(triplestore.getFirstAndOnlyQueryResponse("SELECT ?t WHERE { <" + externalSystemId.toString() + "> <" + RdfConstants.DC_IDENTIFIER + "> ?t }").get("t") + "/objects/" + externalId + "/export?context=archive", externalId + ".xml");
+                payloadFiles.add(file);
+                tempFiles.add(file);
             } else {
                 LOGGER.info("Skipping contained resource " + containedUri + " because it wasn't binary.");
             }
         }
-
-        addReadme(m);
+        
+        addReadme(m, nestedExternalSystemResourceURI);
 
         return payloadFiles;
     }
 
-    private void addReadme(Model rdfProperties) throws IOException, FcrepoOperationFailedException, URISyntaxException {
+    private void addReadme(Model rdfProperties, URI nestedExternalSystemResourceURI) throws IOException, FcrepoOperationFailedException, URISyntaxException {
         File readmeFile = new File(workingDir, "readme.txt");
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(readmeFile)));
         try {
@@ -180,6 +199,13 @@ public class Fedora4APTrustBag extends APTrustBag {
                 pw.println("PID: " + Fedora4Client.getFirstPropertyValue(rdfProperties, uri, RdfConstants.EXTERNAL_ID));
                 pw.println();
             }
+            if (nestedExternalSystemResourceURI != null) {
+                Model externalSystemRdf = f4client.getAllProperties(nestedExternalSystemResourceURI);
+                pw.println("The xml files were exported from " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DCTERMS_DESCRIPTION));
+                pw.println("Service URL: " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DC_IDENTIFIER));
+                pw.println("The individual pids can be gleaned from the filenames which have the pattern {pid}.xml");
+                pw.println();
+            }
 
         } finally {
             pw.close();
@@ -192,6 +218,10 @@ public class Fedora4APTrustBag extends APTrustBag {
     private File downloadURIToTempFile(String url, String filename) throws IOException, URISyntaxException {
         final URI uri = new URI(url);
         File export = new File(workingDir, filename != null ? filename : uri.getHost() + "-" + uri.getPort() + "-" + uri.getPath());
+        export.getParentFile().mkdirs();
+        if (export.exists()) {
+            throw new RuntimeException("File already exists! " + export.getAbsolutePath());
+        }
         FileOutputStream fos = new FileOutputStream(export);
         try {
             HttpHelper.getContentAtURL(url, fos);

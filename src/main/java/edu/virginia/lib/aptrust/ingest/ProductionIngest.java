@@ -30,11 +30,10 @@ public class ProductionIngest {
         Fedora4Client f4Client = new Fedora4Client(getRequiredProperty(p, "f4-url"));
 
         PrintWriter report = new PrintWriter(new OutputStreamWriter(new FileOutputStream(getRequiredProperty(p, "ingest-report"), true)));
+        
         report.println("Started " + new Date());
         try {
-            
-            // TODO: add the ingest operation here
-
+            new Libra1Ingest(f4Client, fuseki, report).createProxyResources();
         } finally {
             report.println("Finished " + new Date());
             report.flush();

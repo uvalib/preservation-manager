@@ -5,21 +5,24 @@ import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProper
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Iterator;
 import java.util.Properties;
 
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrDocument;
 import org.fcrepo.camel.FcrepoOperationFailedException;
 
-import com.yourmediashelf.fedora.client.FedoraClient;
 import com.yourmediashelf.fedora.client.FedoraClientException;
-import com.yourmediashelf.fedora.client.FedoraCredentials;
 
 import edu.virginia.lib.aptrust.RdfConstants;
 import edu.virginia.lib.aptrust.helper.ExternalSystem;
 import edu.virginia.lib.aptrust.helper.Fedora4Client;
 import edu.virginia.lib.aptrust.helper.FusekiReader;
 import edu.virginia.lib.aptrust.helper.RightsStatement;
+import edu.virginia.lib.aptrust.helper.SolrReader;
 
 /**
  * The initial modeling of Libra 1 is extremly simplistic.  There is one fedora4
@@ -42,19 +45,24 @@ public class Libra1Ingest extends AbstractIngest {
 
     private File termsOfUse;
     
-    private FedoraClient f3Client;
+    private SolrReader solr;
     
     private URI collectionUri;
     
-    public Libra1Ingest(Fedora4Client f4Writer, FusekiReader triplestore) throws IOException, FcrepoOperationFailedException, URISyntaxException {
+    private ExternalSystem libraFedora;
+    
+    private PrintWriter report;
+    
+    public Libra1Ingest(Fedora4Client f4Writer, FusekiReader triplestore, PrintWriter report) throws IOException, FcrepoOperationFailedException, URISyntaxException, FedoraClientException {
         super(f4Writer, triplestore);
-        
+        this.report = report;
         FileInputStream fis = new FileInputStream("libra-ingest-config.properties");
+        String fedora3Url = null;
         try {
             Properties config = new Properties();
             config.load(fis);
-            final String fedora3Url = getRequiredProperty(config, "libra-fedora-url");
-            f3Client = new FedoraClient(new FedoraCredentials(fedora3Url, getRequiredProperty(config, "wsls-fedora-username"), getRequiredProperty(config, "wsls-fedora-password")));
+            fedora3Url = getRequiredProperty(config, "libra-fedora-url");
+            solr = new SolrReader(getRequiredProperty(config, "libra-solr-url"), true);
             termsOfUse = new File(getRequiredProperty(config, "terms-of-use"));
         } finally {
             fis.close();
@@ -70,20 +78,31 @@ public class Libra1Ingest extends AbstractIngest {
             final URI rights = this.findLibraRightsStatementURI();
             f4Writer.addURIProperty(collectionUri, RdfConstants.RIGHTS, rights);
         }
+        
+        libraFedora = findGenericFedoraExternalSystemURI(fedora3Url);
     }
     
     /**
      * Creates resource in the Fedora 4 preservation staging repository for
-     * each item in the Libra's Fedora instance.
+     * each item in the Libra's Fedora instance when such objects don't already
+     * exist.  Because libra proxy objects are so opaque (nothing about the
+     * contents of them is parsed or represented in fedora 4) there is never
+     * a need to update objects.
+     * @throws URISyntaxException 
+     * @throws IOException 
+     * @throws FcrepoOperationFailedException 
+     * @throws SolrServerException 
      */
-    public void createProxyResources() {
+    public void createProxyResources() throws FcrepoOperationFailedException, IOException, URISyntaxException, SolrServerException {
         
-        
-        // iterate over all objects
-        
-        // create a fedora 4 resource
-        
-        
+        // iterate over all objects in solr
+        Iterator<SolrDocument> results = solr.getRecordsForQuery("*:*");
+        while (results.hasNext()) {
+            SolrDocument next = results.next();
+            final String pid = (String) next.getFirstValue("id");
+            report.print("Adding libra object " + pid + "... ");
+            report.println(findOrCreateFedoraExternalResource(pid, libraFedora, false, true));
+        }
     }
 
     @Override
@@ -118,7 +137,7 @@ public class Libra1Ingest extends AbstractIngest {
     private ExternalSystem findGenericFedoraExternalSystemURI(final String fedoraBaseUrl) throws FcrepoOperationFailedException, IOException, URISyntaxException, FedoraClientException {
         ExternalSystem sys = super.findExternalSystem(fedoraBaseUrl);
         if (sys == null) {
-            final String fedoraVersion = FedoraClient.describeRepository().execute(f3Client).getRepositoryInfo().getRepositoryVersion();
+            final String fedoraVersion = "3.3"; // hard-coded because the client doesn't work with 3.3
             sys = super.createExternalSystem(fedoraBaseUrl, "Fedora " + fedoraVersion, true);
         }
         return sys;

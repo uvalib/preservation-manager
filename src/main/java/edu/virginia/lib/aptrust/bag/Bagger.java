@@ -58,6 +58,35 @@ public class Bagger {
 
         submitter = new BagSubmitter(amazonS3Client, getRequiredProperty(p, "bucketName"));
 
+        ingestLibra();
+
+
+    }
+    
+    private void ingestLibra() throws Exception {
+        // create bag
+        final URI uri = new URI("http://fedora01.lib.virginia.edu:8080/fcrepo/rest/libra");
+        Fedora4APTrustBag bag = new Fedora4APTrustBag(new BagInfo().sourceOrganization("virginia.edu"),
+                new APTrustInfo("Libra: Online Archive of University of Virginia Scholarship", APTrustInfo.CONSORTIA), uri, f4Client, triplestore);
+        LOGGER.debug("Creating and transferring bag for " + uri + " at " + new Date() + "...");
+        BagSummary bs = bag.serializeAPTrustBag(new File("output"), true);
+        LOGGER.debug(bs.getManifestCopy());
+        LOGGER.info(bs.getFile().getName() + " created, " + bs.getFile().length()
+                + " bytes with base64 checksum=" + bs.getBase64Checksum());
+        
+        // ingest bag
+        BagSubmitter.TransferSummary ts = submitter.transferBag(bs, OVERWRITE);
+        if (ts.wasTransferred()) {
+            createPremisEventForIngest(uri, bs, ts);
+            bs.getFile().delete();
+            LOGGER.info("Transferred in " + ts.getDuration() + " ms.");
+        } else {
+            LOGGER.warn(bs.getFile() + " not transferred!  " + ts.getMessage());
+            bs.getFile().delete();
+        }
+    }
+    
+    private void ingestWSLS(long quota) throws Exception {
         long currentUsage = getPayloadBytesSubmitted();
         LOGGER.info(currentUsage + " of " + quota + " bytes used.");
         List<Map<String, String>> resultPage = getNextPageOfWSLSResultsToSubmit(100);

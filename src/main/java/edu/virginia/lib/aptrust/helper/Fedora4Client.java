@@ -92,7 +92,7 @@ public class Fedora4Client {
     }
     
     public boolean exists(final URI uri) throws FcrepoOperationFailedException {
-    	FcrepoResponse r = getClient().head(uri);
+    	FcrepoResponse r = new FcrepoClient(null, null, baseUri.toString(), false).head(uri);
     	return r.getStatusCode() != 404;
     }
 

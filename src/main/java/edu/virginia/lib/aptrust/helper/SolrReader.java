@@ -3,6 +3,7 @@ package edu.virginia.lib.aptrust.helper;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
@@ -14,8 +15,11 @@ public class SolrReader {
 
     private SolrServer solr;
 
-    public SolrReader(String url) throws MalformedURLException {
+    public SolrReader(String url, boolean useXMLResponses) throws MalformedURLException {
         solr = new HttpSolrServer(url);
+        if (useXMLResponses) {
+            ((HttpSolrServer) solr).setParser(new XMLResponseParser());
+        }
     }
 
     public Iterator<SolrDocument> getRecordsForQuery(String query) throws SolrServerException {
