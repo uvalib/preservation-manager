@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -209,6 +210,17 @@ public class Fedora4Client {
         } finally {
             fis.close();
         }
+    }
+    
+    public URI replaceNonRDFResource(URI uri, File f, String mimeType) throws FcrepoOperationFailedException, IOException {
+        final FileInputStream fis = new FileInputStream(f);
+        try {
+            FcrepoResponse r = getClient().put(uri, fis, mimeType);
+            assertSuccess(r);
+            return r.getLocation();
+        } finally {
+            fis.close();
+        }   
     }
     
     public URI createNonRDFResource(URI parentURI, String content, String mimeType) throws IOException, FcrepoOperationFailedException, URISyntaxException {

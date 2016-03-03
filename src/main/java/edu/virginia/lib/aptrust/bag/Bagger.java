@@ -60,7 +60,6 @@ public class Bagger {
 
         ingestLibra();
 
-
     }
     
     private void ingestLibra() throws Exception {
@@ -149,6 +148,7 @@ public class Bagger {
         f4Client.addDateProperty(eventURI, RdfConstants.PREMIS_HAS_EVENT_DATE, new Date());
         f4Client.addIntegerProperty(eventURI, RdfConstants.PRES_BAG_SIZE, bs.getFile().length());
         f4Client.addIntegerProperty(eventURI, RdfConstants.PRES_BAG_PAYLOAD_SIZE, bs.getBagPayloadSize());
+        f4Client.addLiteralProperty(eventURI, RdfConstants.PRES_BAG_ID, ts.getEtag());
         final URI manifestURI = f4Client.createNonRDFResource(eventURI, bs.getManifestCopy(), "text/plain");
         f4Client.addURIProperty(eventURI, RdfConstants.PRES_HAS_BAG_MANIFEST, manifestURI);
         f4Client.addURIProperty(uri, RdfConstants.PREMIS_HAS_EVENT, eventURI);

@@ -103,6 +103,7 @@ public interface RdfConstants {
     
     String PREMIS_HAS_EVENT_DATE = PREMIS_NAMESPACE + "hasEventDateTime";
 
+    String PRES_BAG_ID = UVA_PRESERVATION_NAMESPACE + "aptrustEtag";
     String PRES_BAG_SIZE = UVA_PRESERVATION_NAMESPACE + "bagSize";
     String PRES_BAG_PAYLOAD_SIZE = UVA_PRESERVATION_NAMESPACE + "bagPayloadSize";
     

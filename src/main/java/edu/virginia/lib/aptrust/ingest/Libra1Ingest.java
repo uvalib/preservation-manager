@@ -5,24 +5,18 @@ import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProper
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrDocument;
 import org.fcrepo.camel.FcrepoOperationFailedException;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
 
 import edu.virginia.lib.aptrust.RdfConstants;
-import edu.virginia.lib.aptrust.helper.ExternalSystem;
 import edu.virginia.lib.aptrust.helper.Fedora4Client;
 import edu.virginia.lib.aptrust.helper.FusekiReader;
 import edu.virginia.lib.aptrust.helper.RightsStatement;
-import edu.virginia.lib.aptrust.helper.SolrReader;
 
 /**
  * The initial modeling of Libra 1 is extremly simplistic.  There is one fedora4
@@ -45,28 +39,31 @@ public class Libra1Ingest extends AbstractIngest {
 
     private File termsOfUse;
     
-    private SolrReader solr;
-    
     private URI collectionUri;
     
-    private ExternalSystem libraFedora;
-    
-    private PrintWriter report;
-    
-    public Libra1Ingest(Fedora4Client f4Writer, FusekiReader triplestore, PrintWriter report) throws IOException, FcrepoOperationFailedException, URISyntaxException, FedoraClientException {
-        super(f4Writer, triplestore);
-        this.report = report;
-        FileInputStream fis = new FileInputStream("libra-ingest-config.properties");
-        String fedora3Url = null;
+    public static void main(String [] args) throws Exception {
+        if (args.length != 1) {
+            System.err.println("The dump file is a required argument!");
+            System.exit(-1);
+        }
+        File dumpFile = new File(args[0]);
+        Properties p = new Properties();
+        FileInputStream fis = new FileInputStream("ingest.properties");
         try {
-            Properties config = new Properties();
-            config.load(fis);
-            fedora3Url = getRequiredProperty(config, "libra-fedora-url");
-            solr = new SolrReader(getRequiredProperty(config, "libra-solr-url"), true);
-            termsOfUse = new File(getRequiredProperty(config, "terms-of-use"));
+            p.load(fis);
         } finally {
             fis.close();
         }
+        
+        FusekiReader fuseki = new FusekiReader(getRequiredProperty(p, "triplestore-url"));
+        Fedora4Client f4Client = new Fedora4Client(getRequiredProperty(p, "f4-url"));
+
+        new Libra1Ingest(f4Client, fuseki, dumpFile);
+    }
+    
+    public Libra1Ingest(Fedora4Client f4Writer, FusekiReader triplestore, File dumpFile) throws IOException, FcrepoOperationFailedException, URISyntaxException, FedoraClientException {
+        super(f4Writer, triplestore);
+        termsOfUse = new File("documents/2011-12-Libra-TOU.pdf");
         if (!f4Writer.exists(new URI(f4Writer.getBaseUri().toString() + "/" + containerResource()))) {
             // create collection resource
             collectionUri = f4Writer.createNamedResource(containerResource());
@@ -78,33 +75,32 @@ public class Libra1Ingest extends AbstractIngest {
             final URI rights = this.findLibraRightsStatementURI();
             f4Writer.addURIProperty(collectionUri, RdfConstants.RIGHTS, rights);
         }
-        
-        libraFedora = findGenericFedoraExternalSystemURI(fedora3Url);
-    }
-    
-    /**
-     * Creates resource in the Fedora 4 preservation staging repository for
-     * each item in the Libra's Fedora instance when such objects don't already
-     * exist.  Because libra proxy objects are so opaque (nothing about the
-     * contents of them is parsed or represented in fedora 4) there is never
-     * a need to update objects.
-     * @throws URISyntaxException 
-     * @throws IOException 
-     * @throws FcrepoOperationFailedException 
-     * @throws SolrServerException 
-     */
-    public void createProxyResources() throws FcrepoOperationFailedException, IOException, URISyntaxException, SolrServerException {
-        
-        // iterate over all objects in solr
-        Iterator<SolrDocument> results = solr.getRecordsForQuery("*:*");
-        while (results.hasNext()) {
-            SolrDocument next = results.next();
-            final String pid = (String) next.getFirstValue("id");
-            report.print("Adding libra object " + pid + "... ");
-            report.println(findOrCreateFedoraExternalResource(pid, libraFedora, false, true));
-        }
+        addOrReplaceLibraDump(dumpFile);
     }
 
+    public void addOrReplaceLibraDump(File dumpfile) throws FcrepoOperationFailedException, IOException, URISyntaxException {
+        if (!dumpfile.getName().endsWith("tar.gz")) {
+            throw new RuntimeException("The libra data dump should be a gnu-zipped tar file!");
+        }
+        final String query = "PREFIX ebucore: <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#>\n" + 
+                "PREFIX fedora: <http://fedora.info/definitions/v4/repository#>\n" + 
+                "\n" + 
+                "SELECT ?f\n" + 
+                "WHERE {\n" + 
+                "     ?o fedora:hasParent <http://fedora01.lib.virginia.edu:8080/fcrepo/rest/libra> .\n" + 
+                "     ?f <http://www.iana.org/assignments/relation/describedby> ?o .\n" + 
+                "     ?f ebucore:filename '''libra-data-directory-dump.tar.gz''' .\n" + 
+                "}";
+        final String existingUriString = triplestore.getFirstAndOnlyQueryResponse(query).get("f");
+        if (existingUriString == null) {
+            final URI uri = f4Writer.createNonRDFResource(collectionUri, dumpfile, "application/gzip");
+            f4Writer.addLiteralProperty(uri, RdfConstants.FILENAME, "libra-data-directory-dump.tar.gz");
+        } else {
+            f4Writer.replaceNonRDFResource(new URI(existingUriString), dumpfile, "application/gzip");
+        }
+        
+    }
+    
     @Override
     protected String containerResource() {
         return "libra";
@@ -129,18 +125,6 @@ public class Libra1Ingest extends AbstractIngest {
         }
 
         return rsURI;
-    }
-    
-    /**
-     * Creates or locates the fedora external system resource and returns it's URI.
-     */
-    private ExternalSystem findGenericFedoraExternalSystemURI(final String fedoraBaseUrl) throws FcrepoOperationFailedException, IOException, URISyntaxException, FedoraClientException {
-        ExternalSystem sys = super.findExternalSystem(fedoraBaseUrl);
-        if (sys == null) {
-            final String fedoraVersion = "3.3"; // hard-coded because the client doesn't work with 3.3
-            sys = super.createExternalSystem(fedoraBaseUrl, "Fedora " + fedoraVersion, true);
-        }
-        return sys;
     }
 
 }

@@ -34,6 +34,13 @@
       <artifactId>httpclient</artifactId>
       <version>4.3.6</version>
     </dependency>
+    
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>javax.json</artifactId>
+      <version>1.0.4</version>
+    </dependency>
+    
 
     <dependency>
       <groupId>org.fcrepo.camel</groupId>
@@ -64,7 +71,7 @@
     <dependency>
       <groupId>edu.virginia.lib.aptrust</groupId>
       <artifactId>bagger</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>3.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -90,4 +97,16 @@
     </dependency>
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

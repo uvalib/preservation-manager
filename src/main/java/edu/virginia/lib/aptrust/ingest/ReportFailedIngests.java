@@ -27,6 +27,7 @@ import edu.virginia.lib.aptrust.helper.FusekiReader;
  * 
  * Our current approach is to add an APTrustEventOutcomeInformation to the 
  * event with a premis:hasEventOutcome property with the "failed" literal value.
+ * @deprecated use ConfirmIngest instead
  */
 public class ReportFailedIngests implements RdfConstants {
 
@@ -79,7 +80,7 @@ public class ReportFailedIngests implements RdfConstants {
                     throw new RuntimeException("No event could be found in the repository for " + url + "!");
                 }
             }
-            markEventAsFailed(eventURI, f4Client);
+            ConfirmIngest.markEventAsFailed(eventURI, f4Client);
             System.out.println("Marked " + url + " has having had a failed event " + eventURI + ".");
         }
     }
@@ -116,24 +117,7 @@ public class ReportFailedIngests implements RdfConstants {
         return new URI(response);
     }
     
-    public static void markEventAsFailed(final URI event, Fedora4Client f4Client) throws Exception {
-        if (f4Client.getPropertyValues(event, event, PREMIS_HAS_EVENT_OUTCOME_INFORMATION).isEmpty()) {
-            final URI outcome = f4Client.createResource(event.toString());
-            try {
-                f4Client.addURIProperty(outcome, RDF_TYPE, new URI(AP_TRUST_EVENT_OUTCOME_INFORMATION));
-                f4Client.addLiteralProperty(outcome, PREMIS_HAS_EVENT_OUTCOME, "failure");
-                f4Client.addURIProperty(event, PREMIS_HAS_EVENT_OUTCOME_INFORMATION, outcome);
-            } catch (RuntimeException ex) {
-                System.err.println("Error while updating new event outcome " + outcome + "!");
-                throw ex;
-            } catch (Exception ex) {
-                System.err.println("Error while updating new event outcome " + outcome + "!");
-                throw ex;
-            }
-        } else {
-            throw new RuntimeException("Event " + event + " already has a reported outcome!");
-        }
-    }
+
     
     private static String getURI(final String baseURL, final String container, final String shortId) {
         return baseURL + "/" + container + "/" + shortId.substring(0, 2) + "/" + shortId.substring(2, 4) + "/" + shortId.substring(4, 6) + "/" + shortId.substring(6, 8) + "/" + shortId;

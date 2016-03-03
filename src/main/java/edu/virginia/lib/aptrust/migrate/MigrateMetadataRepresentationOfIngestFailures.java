@@ -11,7 +11,7 @@ import java.util.Properties;
 import edu.virginia.lib.aptrust.RdfConstants;
 import edu.virginia.lib.aptrust.helper.Fedora4Client;
 import edu.virginia.lib.aptrust.helper.FusekiReader;
-import edu.virginia.lib.aptrust.ingest.ReportFailedIngests;
+import edu.virginia.lib.aptrust.ingest.ConfirmIngest;
 
 /**
  * A Utility to migrate from ontology v1 to v2.  The difference is in the way 
@@ -43,7 +43,7 @@ public class MigrateMetadataRepresentationOfIngestFailures implements RdfConstan
         for (Map<String, String> objectEvent : toMigrate) {
             final URI event = new URI(objectEvent.get("event"));
             final URI object= new URI(objectEvent.get("object"));
-            ReportFailedIngests.markEventAsFailed(event, f4Client);
+            ConfirmIngest.markEventAsFailed(event, f4Client);
 
             final String addCorrect = "PREFIX premis: <" + PREMIS_NAMESPACE + ">\n"
                     + "PREFIX pres: <" + UVA_PRESERVATION_NAMESPACE + ">\n"

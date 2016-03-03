@@ -24,7 +24,7 @@ public class HttpHelper {
 
     final private static Logger LOGGER = LoggerFactory.getLogger(HttpHelper.class);
 
-    private static HttpClient createClient() throws IOException {
+    public static HttpClient createClient() throws IOException {
         File authenticationConfig = new File("auth.properties");
         if (authenticationConfig.exists()) {
             Properties p = new Properties();
@@ -62,6 +62,5 @@ public class HttpHelper {
             get.releaseConnection();
         }
     }
-
 
 }
