@@ -48,7 +48,6 @@ public class Bagger {
     public Bagger() throws Exception {
         Properties ingestProperties = getProperties("ingest.properties");
 
-        long quota = Long.parseLong(getRequiredProperty(ingestProperties, "aptrust-quota"));
         f4Client = new Fedora4Client(getRequiredProperty(ingestProperties, "f4-url"));
         triplestore = new FusekiReader(getRequiredProperty(ingestProperties, "triplestore-url"));
 
