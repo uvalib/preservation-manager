@@ -97,7 +97,7 @@ public class Libra1Ingest extends AbstractIngest {
             f4Writer.addLiteralProperty(uri, RdfConstants.FILENAME, "libra-data-directory-dump.tar.gz");
         } else {
             f4Writer.replaceNonRDFResource(new URI(existingUriString), dumpfile, "application/gzip");
-            f4Writer.addLiteralProperty(new URI(existingUriString), RdfConstants.FILENAME, "libra-data-directory-dump.tar.gz");
+            f4Writer.addLiteralProperty(new URI(existingUriString + "/fcr:metadata"), RdfConstants.FILENAME, "libra-data-directory-dump.tar.gz");
         }
         
     }
