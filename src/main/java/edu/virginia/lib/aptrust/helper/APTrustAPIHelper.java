@@ -3,6 +3,7 @@ package edu.virginia.lib.aptrust.helper;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLEncoder;
+import java.util.List;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -31,12 +32,13 @@ public class APTrustAPIHelper {
     /**
      * Gets a Json Object with information about an APTrust ingest operation for
      * the item with the given URI and etag, or returns null if none is available.
-     * The result format is simply the serialized json from the AP Trust api.
+     * The result format is simply the serialized json from the AP Trust API.
      * @throws IOException 
      * @throws IllegalStateException 
      */
     public JsonObject getIngestReportForResource(String name, String etag) throws IOException {
-        final String url = baseUrl + "/items?action=Ingest&per_page=50&name_exact=" + URLEncoder.encode(name, "UTF-8");
+        final String url = baseUrl + "/items?item_action=ingest&per_page=50&name_exact=" + URLEncoder.encode(name, "UTF-8");
+        System.out.println(url);
         HttpGet get = new HttpGet(url);
         
         get.addHeader("Accept", APPLICATION_JSON);
@@ -61,6 +63,36 @@ public class APTrustAPIHelper {
                 }
             }
             return null;
+        } finally {
+            get.releaseConnection();
+        }
+        
+    }
+    
+    /**
+     * Gets a List of JsonObject's that represent ingest operations known to AP
+     * Trust for the resource with the given name.
+     */
+    public JsonArray getIngestReportsForResource(String name) throws IOException {
+        final String url = baseUrl + "/items?item_action=ingest&per_page=50&name_exact=" + URLEncoder.encode(name, "UTF-8");
+        System.out.println(url);
+        HttpGet get = new HttpGet(url);
+        
+        get.addHeader("Accept", APPLICATION_JSON);
+        get.addHeader("X-Fluctus-API-User", user);
+        get.addHeader("X-Fluctus-API-Key", apiKey);
+        
+        try {
+            final HttpResponse response = HttpHelper.createClient().execute(get);
+            if (response.getStatusLine().getStatusCode() < 200 || response.getStatusLine().getStatusCode() >= 300) {
+                throw new RuntimeException(response.getStatusLine() + " result from request to get " + url);
+            }
+            JsonReader reader = Json.createReader(new InputStreamReader(response.getEntity().getContent()));
+            JsonObject results = reader.readObject();
+            if (results.get("next") == null) {
+                throw new RuntimeException("more than one page of results!");
+            }
+            return results.getJsonArray("results");
         } finally {
             get.releaseConnection();
         }
