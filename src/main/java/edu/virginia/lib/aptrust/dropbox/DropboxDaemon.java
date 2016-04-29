@@ -85,7 +85,7 @@ public class DropboxDaemon {
             if (!watcherMap.containsKey(watchDir) && watchDir.isDirectory()) {
                 final File presDir = getPresDir(watchDir); 
                 if (presDir == null) {
-                    LOGGER.warn("Unable to determine preservation directory for " + watchDir.getAbsolutePath() + ".");
+                    LOGGER.debug("Unable to determine preservation directory for " + watchDir.getAbsolutePath() + ".");
                 } else {
                     watcherMap.put(watchDir, new DropboxWatcher(watchDir, presDir));
                 }
@@ -114,7 +114,6 @@ public class DropboxDaemon {
             result.mkdirs();
             return result;
         } else {
-            LOGGER.warn("Unable to determine preservation directory for " + watchDir.getAbsolutePath());
             return null;
         }
     }
