@@ -83,8 +83,10 @@ public class Fedora4Client {
     final private static Logger LOGGER = LoggerFactory.getLogger(Fedora4Client.class);
 
     private URI baseUri;
+    private String username;
+    private String password;
 
-    public Fedora4Client(final String baseUrl) throws URISyntaxException {
+    public Fedora4Client(final String baseUrl, final String username, final String password) throws URISyntaxException {
         this.baseUri = new URI(baseUrl);
     }
     
@@ -93,7 +95,7 @@ public class Fedora4Client {
     }
     
     public boolean exists(final URI uri) throws FcrepoOperationFailedException {
-    	FcrepoResponse r = new FcrepoClient(null, null, baseUri.toString(), false).head(uri);
+    	FcrepoResponse r = new FcrepoClient(username, password, baseUri.toString(), false).head(uri);
     	return r.getStatusCode() != 404;
     }
 
@@ -243,7 +245,7 @@ public class Fedora4Client {
     }
 
     private FcrepoClient getClient() {
-        return new FcrepoClient(null, null, baseUri.toString(), true);
+        return new FcrepoClient(username, password, baseUri.toString(), true);
     }
 
     public boolean isRdfResource(URI uri) throws FcrepoOperationFailedException, URISyntaxException {

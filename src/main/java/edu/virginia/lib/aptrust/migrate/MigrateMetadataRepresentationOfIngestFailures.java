@@ -1,5 +1,6 @@
 package edu.virginia.lib.aptrust.migrate;
 
+import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getOptionalProperty;
 import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProperty;
 
 import java.io.FileInputStream;
@@ -29,7 +30,7 @@ public class MigrateMetadataRepresentationOfIngestFailures implements RdfConstan
         }
         
         FusekiReader fuseki = new FusekiReader(getRequiredProperty(p, "triplestore-url"));
-        Fedora4Client f4Client = new Fedora4Client(getRequiredProperty(p, "f4-url"));
+        Fedora4Client f4Client = new Fedora4Client(getOptionalProperty(p, "f4-username"), getOptionalProperty(p, "f4-password"), getRequiredProperty(p, "f4-url"));
         
         // iterate over all the items to be updated
         final String query = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" + 

@@ -1,5 +1,6 @@
 package edu.virginia.lib.aptrust.ingest;
 
+import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getOptionalProperty;
 import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProperty;
 
 import java.io.FileInputStream;
@@ -30,7 +31,7 @@ public class ConfirmIngest implements RdfConstants {
         }
         
         FusekiReader fuseki = new FusekiReader(getRequiredProperty(p, "triplestore-url"));
-        Fedora4Client f4Client = new Fedora4Client(getRequiredProperty(p, "f4-url"));
+        Fedora4Client f4Client = new Fedora4Client(getOptionalProperty(p, "f4-username"), getOptionalProperty(p, "f4-password"), getRequiredProperty(p, "f4-url"));
         APTrustAPIHelper aptrust = new APTrustAPIHelper(getRequiredProperty(p, "aptrust-api-url"), getRequiredProperty(p, "aptrust-api-key"), getRequiredProperty(p, "aptrust-api-user"));
         
         // walk through all ingest events that have etags but no eventOutcomeInformation and query the 

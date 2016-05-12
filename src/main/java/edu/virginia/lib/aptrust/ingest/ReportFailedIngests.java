@@ -1,5 +1,6 @@
 package edu.virginia.lib.aptrust.ingest;
 
+import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getOptionalProperty;
 import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProperty;
 
 import java.io.BufferedReader;
@@ -61,7 +62,7 @@ public class ReportFailedIngests implements RdfConstants {
         }
         
         FusekiReader fuseki = new FusekiReader(getRequiredProperty(p, "triplestore-url"));
-        Fedora4Client f4Client = new Fedora4Client(getRequiredProperty(p, "f4-url"));
+        Fedora4Client f4Client = new Fedora4Client(getOptionalProperty(p, "f4-username"), getOptionalProperty(p, "f4-password"), getRequiredProperty(p, "f4-url"));
         
         BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
         String shortId = null;

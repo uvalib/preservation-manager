@@ -13,6 +13,15 @@ public class PropertiesHelper {
             throw new RuntimeException("Required property \"" + name + "\" not found!");
         }
     }
+
+    public static String getOptionalProperty(Properties p, String name) {
+        if (p.containsKey(name)) {
+            return p.getProperty(name);
+        } else {
+            return null;
+        }
+    }
+
     
     public static Properties getProperties(String filename) throws IOException {
         Properties p = new Properties();

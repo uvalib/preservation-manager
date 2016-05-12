@@ -2,6 +2,7 @@ package edu.virginia.lib.aptrust.bag;
 
 import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getProperties;
 import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getRequiredProperty;
+import static edu.virginia.lib.aptrust.helper.PropertiesHelper.getOptionalProperty;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class Bagger {
     public Bagger() throws Exception {
         Properties ingestProperties = getProperties("ingest.properties");
 
-        f4Client = new Fedora4Client(getRequiredProperty(ingestProperties, "f4-url"));
+        f4Client = new Fedora4Client(getOptionalProperty(ingestProperties, "f4-username"), getOptionalProperty(ingestProperties, "f4-password"), getRequiredProperty(ingestProperties, "f4-url"));
         triplestore = new FusekiReader(getRequiredProperty(ingestProperties, "triplestore-url"));
 
         Properties p = getProperties("aws-credentials.properties");
