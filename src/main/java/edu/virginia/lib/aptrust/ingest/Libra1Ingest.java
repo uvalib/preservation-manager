@@ -9,7 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
-import org.fcrepo.camel.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoOperationFailedException;
 
 import com.yourmediashelf.fedora.client.FedoraClientException;
 

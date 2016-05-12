@@ -9,9 +9,9 @@ import edu.virginia.lib.aptrust.RdfConstants;
 import edu.virginia.lib.aptrust.ingest.WSLSIngest;
 
 import org.apache.commons.io.IOUtils;
-import org.fcrepo.camel.FcrepoClient;
-import org.fcrepo.camel.FcrepoOperationFailedException;
-import org.fcrepo.camel.FcrepoResponse;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

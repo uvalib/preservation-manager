@@ -1,6 +1,6 @@
 package edu.virginia.lib.aptrust.helper;
 
-import org.fcrepo.camel.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoOperationFailedException;
 
 import edu.virginia.lib.aptrust.RdfConstants;
 

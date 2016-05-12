@@ -43,9 +43,9 @@
     
 
     <dependency>
-      <groupId>org.fcrepo.camel</groupId>
-      <artifactId>fcrepo-camel</artifactId>
-      <version>${fcrepo.version}</version>
+      <groupId>org.fcrepo.client</groupId>
+      <artifactId>fcrepo-java-client</artifactId>
+      <version>0.1.2</version>
         <exclusions>
             <exclusion>
                 <groupId>org.slf4j</groupId>

@@ -10,7 +10,7 @@ import edu.virginia.lib.aptrust.helper.FusekiReader;
 import edu.virginia.lib.aptrust.helper.HttpHelper;
 import edu.virginia.lib.aptrust.helper.mediainfo.MediaInfoProcess;
 
-import org.fcrepo.camel.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoOperationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

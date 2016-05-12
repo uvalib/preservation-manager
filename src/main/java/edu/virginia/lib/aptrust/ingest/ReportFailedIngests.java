@@ -11,7 +11,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
-import org.fcrepo.camel.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoOperationFailedException;
 
 import edu.virginia.lib.aptrust.RdfConstants;
 import edu.virginia.lib.aptrust.helper.Fedora4Client;
