@@ -86,7 +86,7 @@ public class Fedora4Client {
     private String username;
     private String password;
 
-    public Fedora4Client(final String baseUrl, final String username, final String password) throws URISyntaxException {
+    public Fedora4Client(final String username, final String password, final String baseUrl) throws URISyntaxException {
         this.baseUri = new URI(baseUrl);
     }
     
