@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -190,13 +191,15 @@ public abstract class AbstractIngest {
      * @param syncIndexUpdate if true and this method creates a new resource, it waits until that
      *                        new resource is findable within the RDF triplestore before returning.
      */
-    protected URI createOrLocateTypedResource(final String parent, String id, URI type, boolean preservationPackage, boolean syncIndexUpdate) throws URISyntaxException, IOException, FcrepoOperationFailedException, InterruptedException {
+    protected URI createOrLocateTypedResource(final String parent, String id, URI type, boolean preservationPackage, boolean syncIndexUpdate, ResourceInitializer whenCreated) throws URISyntaxException, IOException, FcrepoOperationFailedException, InterruptedException {
         URI uri = lookupFedora4URI(id, type.toString());
         if (uri == null) {
             // create the object
             uri = createResource(parent, id, type, preservationPackage, syncIndexUpdate);
+            if (whenCreated != null) {
+                whenCreated.initializeResource(uri);
+            }
             f4Writer.addLiteralProperty(uri, RdfConstants.DC_IDENTIFIER, id);
-            
             while (syncIndexUpdate && lookupFedora4URI(id, type.toString()) == null) {
                 LOGGER.debug("Waiting for resource creation to propagate to triplestore...");
                 try {
@@ -336,5 +339,9 @@ public abstract class AbstractIngest {
         } else {
             return new URI(uriStr);
         }
+    }
+    
+    public static interface ResourceInitializer {
+        public void initializeResource(URI uri) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException;
     }
 }

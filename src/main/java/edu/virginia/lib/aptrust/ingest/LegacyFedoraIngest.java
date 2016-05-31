@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -55,10 +56,12 @@ public class LegacyFedoraIngest extends AbstractIngest {
 
 
     public void ingestAllPids() throws FcrepoOperationFailedException, URISyntaxException, IOException, SolrServerException, InterruptedException {
-        URI collectionUri = new URI(f4Writer.getBaseUri().toString() + "/" + containerResource());
+        final URI collectionUri = new URI(f4Writer.getBaseUri().toString() + "/" + containerResource());
         if (!f4Writer.exists(collectionUri)) {
             // create collection resource
-            collectionUri = f4Writer.createNamedResource(containerResource());
+            if (!f4Writer.createNamedResource(containerResource()).equals(collectionUri)) {
+                throw new RuntimeException("Unexpected URI for new resource!");
+            }
             
             // make it an external system
             f4Writer.addLiteralProperty(collectionUri, RdfConstants.DC_IDENTIFIER, "http://fedora-prod01.lib.virginia.edu/");
@@ -79,14 +82,19 @@ public class LegacyFedoraIngest extends AbstractIngest {
                     final String pid = line.substring(12,firstComma);
                     final String title = line.substring(firstComma + 1);
                     final String virgoUrl = getVirgoUrl(pid);
-                    final URI uri = createOrLocateTypedResource(collectionUri.toString(), pid, new URI(RdfConstants.EXTERNAL_RESOURCE_TYPE), false, true);
-                    f4Writer.addURIProperty(uri, RdfConstants.EXTERNAL_SYSTEM, collectionUri);
-                    if (title != null) {
-                        f4Writer.addLiteralProperty(uri,  RdfConstants.DC_TITLE, title);
-                    }
-                    if (virgoUrl != null) {
-                        f4Writer.addLiteralProperty(uri, RdfConstants.PRES_HAS_VIRGO_VIEW, virgoUrl);
-                    }
+                    final URI uri = createOrLocateTypedResource(collectionUri.toString(), pid, new URI(RdfConstants.EXTERNAL_RESOURCE_TYPE), false, true, new ResourceInitializer() {
+
+                        @Override
+                        public void initializeResource(URI uri) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException {
+                            f4Writer.addURIProperty(uri, RdfConstants.EXTERNAL_SYSTEM, collectionUri);
+                            if (title != null) {
+                                f4Writer.addLiteralProperty(uri,  RdfConstants.DC_TITLE, title);
+                            }
+                            if (virgoUrl != null) {
+                                f4Writer.addLiteralProperty(uri, RdfConstants.PRES_HAS_VIRGO_VIEW, virgoUrl);
+                            }
+                            
+                        }});
                     
                     if (title.equals("null")) {
                         System.out.println(pid + "  \"" + (virgoUrl != null ? virgoUrl : ""));
