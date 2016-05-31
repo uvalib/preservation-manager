@@ -46,6 +46,18 @@ public class HttpHelper {
             return HttpClients.createDefault();
         }
     }
+    
+    public static HttpClient createClient(final String username, final String password, final String host) throws IOException {
+        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        credsProvider.setCredentials(
+                new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
+                new UsernamePasswordCredentials(username, password));
+        CloseableHttpClient httpclient = HttpClients.custom()
+                .setDefaultCredentialsProvider(credsProvider)
+                .build();
+        return httpclient;
+    }
+
 
     public static void getContentAtURL(final String url, OutputStream os) throws IOException {
         HttpGet get = new HttpGet(url);

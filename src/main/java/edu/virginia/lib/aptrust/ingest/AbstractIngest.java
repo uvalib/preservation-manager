@@ -185,11 +185,36 @@ public abstract class AbstractIngest {
     }
 
     /**
+     * Finds or creates a typed resource.  It is expected that the given IDs will be unique within
+     * that type of resource in the repository.  
+     * @param syncIndexUpdate if true and this method creates a new resource, it waits until that
+     *                        new resource is findable within the RDF triplestore before returning.
+     */
+    protected URI createOrLocateTypedResource(final String parent, String id, URI type, boolean preservationPackage, boolean syncIndexUpdate) throws URISyntaxException, IOException, FcrepoOperationFailedException, InterruptedException {
+        URI uri = lookupFedora4URI(id, type.toString());
+        if (uri == null) {
+            // create the object
+            uri = createResource(parent, id, type, preservationPackage, syncIndexUpdate);
+            f4Writer.addLiteralProperty(uri, RdfConstants.DC_IDENTIFIER, id);
+            
+            while (syncIndexUpdate && lookupFedora4URI(id, type.toString()) == null) {
+                LOGGER.debug("Waiting for resource creation to propagate to triplestore...");
+                try {
+                    Thread.sleep(MS_TO_WAIT);
+                } catch (InterruptedException e) {
+                    // no worries, we just got woken up early...
+                }
+            }
+        }
+        return uri;
+    }
+    
+    /**
      * Creates a resource with the given identifier and type and then waits for the update to propagate to
      * the triplestore.
      */
-    protected URI createResource(String id, URI rdfType, boolean preservationPackage, boolean syncIndexUpdate) throws FcrepoOperationFailedException, URISyntaxException, IOException {
-        final URI uri = f4Writer.createResource(containerResource());
+    protected URI createResource(final String parent, String id, URI rdfType, boolean preservationPackage, boolean syncIndexUpdate) throws FcrepoOperationFailedException, URISyntaxException, IOException {
+        final URI uri = f4Writer.createResource(parent);
         f4Writer.addLiteralProperty(uri, RdfConstants.DC_IDENTIFIER, id);
         f4Writer.addURIProperty(uri, RdfConstants.RDF_TYPE, rdfType);
         if (preservationPackage) {

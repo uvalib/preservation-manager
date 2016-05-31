@@ -12,7 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <fcrepo.version>4.3.0</fcrepo.version>
+    <fcrepo.version>4.5.0</fcrepo.version>
   </properties>
 
   <dependencies>
@@ -57,7 +57,6 @@
             </exclusion>
         </exclusions>
     </dependency>
-
     <dependency>
       <groupId>com.yourmediashelf.fedora.client</groupId>
       <artifactId>fedora-client-core</artifactId>

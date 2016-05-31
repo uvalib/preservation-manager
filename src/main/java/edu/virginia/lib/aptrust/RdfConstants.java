@@ -72,6 +72,8 @@ public interface RdfConstants {
     String AP_TRUST_PRESERVATION_EVENT_TYPE = UVA_PRESERVATION_NAMESPACE + "APTrustEvent";
     String PREMIS_EVENT_TYPE = PREMIS_NAMESPACE + "Event";
     
+    String PRES_HAS_VIRGO_VIEW = UVA_PRESERVATION_NAMESPACE + "hasVirgoView";    
+    
     /**
      * premis:hasEvent
      */

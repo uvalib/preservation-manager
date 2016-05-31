@@ -1,25 +1,9 @@
 package edu.virginia.lib.aptrust.helper;
 
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.RDFNode;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
-
-import edu.virginia.lib.aptrust.RdfConstants;
-import edu.virginia.lib.aptrust.ingest.WSLSIngest;
-
-import org.apache.commons.io.IOUtils;
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.client.FcrepoOperationFailedException;
-import org.fcrepo.client.FcrepoResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -33,6 +17,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.rdf.model.StmtIterator;
+
+import edu.virginia.lib.aptrust.RdfConstants;
+
 public class Fedora4Client {
 
     final private static Map<String, String> namespaceToPrefixMap = new HashMap<String, String>();
@@ -45,6 +43,7 @@ public class Fedora4Client {
         namespaceToPrefixMap.put("http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#", "ebucore");
         namespaceToPrefixMap.put("http://purl.org/dc/terms/", "dcterms");
         namespaceToPrefixMap.put("http://fedora.lib.virginia.edu/wsls/relationships#", "wsls");
+        namespaceToPrefixMap.put("http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/", "hash");
         namespaceToPrefixMap.put(RdfConstants.PREMIS_NAMESPACE, "premis");
     }
 
@@ -87,6 +86,8 @@ public class Fedora4Client {
     private String password;
 
     public Fedora4Client(final String username, final String password, final String baseUrl) throws URISyntaxException {
+        this.username = username;
+        this.password = password;
         this.baseUri = new URI(baseUrl);
     }
     
@@ -95,7 +96,12 @@ public class Fedora4Client {
     }
     
     public boolean exists(final URI uri) throws FcrepoOperationFailedException {
-    	FcrepoResponse r = new FcrepoClient(username, password, baseUri.toString(), false).head(uri);
+        FcrepoResponse r;
+        try {
+            r = new FcrepoClient(username, password, baseUri.toURL().getHost(), false).head(uri);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     	return r.getStatusCode() != 404;
     }
 
@@ -244,8 +250,20 @@ public class Fedora4Client {
         IOUtils.copy(r.getBody(), os);
     }
 
+    public void download(URI uri, OutputStream os) throws FcrepoOperationFailedException, IOException {
+        FcrepoResponse r = getClient().get(uri, null, null);
+        if (r.getStatusCode() > 299 || r.getStatusCode() < 200) {
+            throw new RuntimeException("Status code " + r.getStatusCode() + " from export request!");
+        }
+        IOUtils.copy(r.getBody(), os);
+    }
+    
     private FcrepoClient getClient() {
-        return new FcrepoClient(username, password, baseUri.toString(), true);
+        try {
+            return new FcrepoClient(username, password, baseUri.toURL().getHost(), true);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean isRdfResource(URI uri) throws FcrepoOperationFailedException, URISyntaxException {

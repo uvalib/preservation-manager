@@ -123,7 +123,7 @@ public class AvalonIngest extends AbstractIngest {
         URI rsURI = lookupFedora4URI(rs.getIdentifier(), RdfConstants.RIGHTS_STATEMENT);
         if (rsURI == null) {
             // create a new one
-            rsURI = createResource(rs.getIdentifier(), new URI(RdfConstants.RIGHTS_STATEMENT), false, true);
+            rsURI = createResource(containerResource(), rs.getIdentifier(), new URI(RdfConstants.RIGHTS_STATEMENT), false, true);
             f4Writer.addURIProperty(rsURI, RdfConstants.RDF_TYPE, new URI(RdfConstants.CONCEPT));
             if (rs.getPreferredLabel() != null) {
                 f4Writer.addLiteralProperty(rsURI, RdfConstants.SKOS_NAMESPACE + "prefLabel", rs.getPreferredLabel());

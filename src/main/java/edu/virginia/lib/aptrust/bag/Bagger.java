@@ -76,7 +76,7 @@ public class Bagger {
         // ingest bag
         BagSubmitter.TransferSummary ts = submitter.transferBag(bs, OVERWRITE);
         if (ts.wasTransferred()) {
-            createPremisEventForIngest(uri, bs, ts);
+            createPremisEventForIngest(f4Client, triplestore, uri, bs, ts);
             bs.getFile().delete();
             LOGGER.info("Transferred in " + ts.getDuration() + " ms.");
         } else {
@@ -118,7 +118,7 @@ public class Bagger {
                         // check bag size vs. current usage
                         BagSubmitter.TransferSummary ts = submitter.transferBag(bs, OVERWRITE);
                         if (ts.wasTransferred()) {
-                            createPremisEventForIngest(new URI(uri), bs, ts);
+                            createPremisEventForIngest(f4Client, triplestore, new URI(uri), bs, ts);
                             currentUsage += bs.getBagPayloadSize();
                             bs.getFile().delete();
                             LOGGER.info("Transferred in " + ts.getDuration() + " ms (" + currentUsage
@@ -136,7 +136,7 @@ public class Bagger {
         }
     }
 
-    private void createPremisEventForIngest(URI uri, BagSummary bs, TransferSummary ts)
+    public static void createPremisEventForIngest(final Fedora4Client f4Client, final FusekiReader triplestore, URI uri, BagSummary bs, TransferSummary ts)
             throws FcrepoOperationFailedException, URISyntaxException, IOException {
         final URI eventURI = f4Client.createResource(uri.toString());
         LOGGER.info("Created event resource " + uri);
