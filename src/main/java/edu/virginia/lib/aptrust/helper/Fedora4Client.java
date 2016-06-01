@@ -127,7 +127,7 @@ public class Fedora4Client {
 
     public void addLiteralProperty(URI subject, String predicate, String literal) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException {
         Name n = new Name(predicate);
-        final String sparqlUpdate = "PREFIX " + n.getPrefix() + ": <" + n.getNamespace() + ">\n INSERT DATA { <> " + n.getPrefix() + ":" + n.getName() + " '''" + literal + "''' . }";
+        final String sparqlUpdate = "PREFIX " + n.getPrefix() + ": <" + n.getNamespace() + ">\n INSERT DATA { <> " + n.getPrefix() + ":" + n.getName() + (literal.endsWith("'") ? "\"\"\"" + literal + "\"\"\"" : "'''" + literal + "'''") + " . }";
         try {
             FcrepoResponse r = getClient().patch(subject, new ByteArrayInputStream(sparqlUpdate.getBytes("UTF-8")));
             assertSuccess(r);
