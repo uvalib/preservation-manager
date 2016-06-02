@@ -119,69 +119,6 @@ public class WSLSIngest extends AbstractIngest {
             createOrLocateFileResource(ff, isPreservationMasterFile(ff), true);
         }
     }
-    
-    /**
-     * This walks through all the files in the WSLS federation space and updates the pres:File resources for them as
-     * well as the binary to point to external (web-served) files.
-     * 
-     * THIS IS CODE TO MIGRATE AWAY FROM USING FILESYSTEM FEDERATION, A FEATURE FOR WHICH SUPPORT IS DISCONTINUING
-     */
-    public void migratePreservationPackagesForFiles(String uri) throws FcrepoOperationFailedException, IOException, URISyntaxException, InterruptedException {
-        /*
-         * We could page through the following query... but just 
-         * iterating over the files as we did when we first created them would be faster.
-         * PREFIX pres: <http://fedora.lib.virginia.edu/preservation#>
-         *
-         *   SELECT DISTINCT ?binary ?fileUrl
-         *   WHERE {
-         *      ?o pres:hasBinary ?binary .
-         *      ?binary pres:fileLocation ?fileUrl .
-         *   } ORDER BY ?fileUrl LIMIT 10 OFFSET 0
-         *   
-         */
-
-
-        Model m = f4Writer.getAllProperties(new URI(uri + "/fcr:metadata"));
-        System.out.println("migratePreservationPackagesForFiles(" + uri + ")");
-        if (Fedora4Client.hasType(m, uri.toString(), "http://fedora.info/definitions/v4/repository#Container")) {
-            for (RDFNode n : Fedora4Client.getPropertyValues(m, new URI(uri), RdfConstants.LDP_CONTAINS)) {
-                if (n.isResource()) {
-                    migratePreservationPackagesForFiles(n.asResource().getURI());
-                } else {
-                    throw new RuntimeException("ldp:contained resources must be resources!");
-                }
-            }
-        } else {
-            final URI fileUri = lookupFedora4URI(uri, RdfConstants.FILE_TYPE);
-            if (fileUri == null) {
-                System.out.println("Unable to find pres:File for " + fileUri + ", assuming that it was already migrated.");
-            } else {
-                Model properties = f4Writer.getAllProperties(fileUri);
-                final URI binaryURI = new URI(Fedora4Client.getPropertyValues(properties, fileUri, RdfConstants.HAS_BINARY).iterator().next().asResource().getURI());
-                final URI binaryMetadataURI = new URI(binaryURI.toString() + "/fcr:metadata");
-                final String id = Fedora4Client.getFirstPropertyValue(properties, fileUri, RdfConstants.DC_IDENTIFIER);
-                
-                final String newId = getNewFederationFileId(id);
-                if (newId.equals(id) && !"".equals(f4Writer.getSingleRequiredPropertyValue(binaryURI, binaryMetadataURI, RdfConstants.FILENAME))) {
-                    System.out.println(fileUri + " skipped");
-                } else {
-                    System.out.println(fileUri + " (" + id + " --> " + newId);
-                    f4Writer.updateLiteralProperty(fileUri, RdfConstants.DC_IDENTIFIER, newId);
-                    f4Writer.updateRedirectNonRDFResource(newId, binaryURI);
-                    f4Writer.addLiteralProperty(binaryMetadataURI, RdfConstants.FILENAME, getFilename(newId));
-                    
-                }
-            }
-        }
-    }
-    
-    private static String getNewFederationFileId(String originalId) {
-        return originalId.replace(":8080/fcrepo/rest/av-masters/", "/av-masters/");
-    }
-    
-    private static String getFilename(String id) {
-        return id.substring(id.lastIndexOf('/') + 1);
-    }
 
     /**
      * Determine whether a FederatedFile is a preservation master file.  The current implementation
