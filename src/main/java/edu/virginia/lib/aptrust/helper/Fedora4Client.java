@@ -118,9 +118,12 @@ public class Fedora4Client {
     	return r.getLocation();
     }
 
+    /**
+     * Removes all triples for the given predicate from the given subject.
+     */
     public void removeProperties(URI subject, String predicate) throws UnsupportedEncodingException, FcrepoOperationFailedException {
         Name n = new Name(predicate);
-        final String sparqlUpdate = "PREFIX " + n.getPrefix() + ": <" + n.getNamespace() + ">\n DELETE WHERE { " + n.getPrefix() + ":" + n.getName() + " <" + predicate + "> ?o . }";
+        final String sparqlUpdate = "PREFIX " + n.getPrefix() + ": <" + n.getNamespace() + ">\n DELETE WHERE { <> " + n.getPrefix() + ":" + n.getName() + "  ?o . }";
         FcrepoResponse r = getClient().patch(subject, new ByteArrayInputStream(sparqlUpdate.getBytes("UTF-8")));
         assertSuccess(r);
     }
@@ -207,6 +210,11 @@ public class Fedora4Client {
         FcrepoResponse r = getClient().post(parentURI == null ? baseUri : parentURI, null, "message/external-body; access-type=URL; URL=\"" + uri.toURL().toString() + "\"");
         assertSuccess(r);
         return new URI(r.getLocation().toString());
+    }
+    
+    public void updateRedirectNonRDFResource(String externalUri, URI uri) throws MalformedURLException, FcrepoOperationFailedException {
+        FcrepoResponse r = getClient().put(uri, null, "message/external-body; access-type=URL; URL=\"" + externalUri + "\"");
+        assertSuccess(r);
     }
 
     public URI createNonRDFResource(URI parentURI, File f, String mimeType) throws IOException, FcrepoOperationFailedException, URISyntaxException {

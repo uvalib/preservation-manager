@@ -342,6 +342,6 @@ public abstract class AbstractIngest {
     }
     
     public static interface ResourceInitializer {
-        public void initializeResource(URI uri) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException;
+        public void initializeResource(URI uri) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException, IOException;
     }
 }
