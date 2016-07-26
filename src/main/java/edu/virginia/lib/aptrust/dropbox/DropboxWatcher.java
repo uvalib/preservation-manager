@@ -18,6 +18,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -64,6 +66,7 @@ public class DropboxWatcher {
         moverThread.join();
     }
 
+    Pattern WINDOWS_MD5_FILE = Pattern.compile("MD5 hash of file.*([0-9a-f][0-9a-f]( [0-9a-f][0-9a-f]){15}+).*", Pattern.DOTALL);
     
     /**
      * Checks to determine if a file has completed using the following steps:
@@ -81,7 +84,10 @@ public class DropboxWatcher {
         final File md5File = new File(file.getParent(), file.getName() + ".md5");
         if (md5File.exists()) {
             providedChecksum = FileUtils.readFileToString(md5File).trim();
-            if (providedChecksum.length() > 32) {
+            Matcher m = WINDOWS_MD5_FILE.matcher(providedChecksum);
+            if (m.matches()) {
+                providedChecksum = m.group(1).replaceAll(" ", "");
+            } else if (providedChecksum.length() > 32) {
                 providedChecksum = providedChecksum.substring(0, 32);
             }
             try {
