@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
@@ -168,7 +167,7 @@ public class DropboxWatcher {
                     WatchKey watchKey = watchService.take();
                     
                     for (final WatchEvent<?> event : watchKey.pollEvents()) {
-                        if (event.kind().name().equals("ENTRY_MODIFY")) {
+                        if (!event.kind().name().equals("ENTRY_DELETE")) {
                             Path modificationPath = path.resolve((Path) event.context());
                             File modifiedFile = modificationPath.toFile();
                             if (modifiedFile.getName().endsWith(".md5")) {
