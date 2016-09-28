@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,18 +39,23 @@ public class DropboxWatcher {
     
     final private static Logger LOGGER = LoggerFactory.getLogger(DropboxWatcher.class);
 
+    final public static int POLL_INTERVAL = 60000;
+    
     private Queue<File> fileQueue;
     
     private File dropboxDirectory;
     
     private File preservationDirectory;
     
+    private File tempDirectory;
+    
     private Thread watcherThread;
     
     private Thread moverThread;
     
-    public DropboxWatcher(File watchDir, File destinationDir) {
+    public DropboxWatcher(File watchDir, File destinationDir, File tempDirectory) {
         preservationDirectory = destinationDir;
+        this.tempDirectory = tempDirectory;
         dropboxDirectory = watchDir;
         fileQueue = new LinkedList<File>();
         
@@ -67,6 +73,22 @@ public class DropboxWatcher {
     }
 
     Pattern WINDOWS_MD5_FILE = Pattern.compile("MD5 hash of file.*([0-9a-f][0-9a-f]( [0-9a-f][0-9a-f]){15}+).*", Pattern.DOTALL);
+    
+    /**
+     * A quick check to determine if its worth the time to process a file.  To be 
+     * worth the time (which involves copying and computing a checksum) a file must:
+     * 1.  have a checksum file
+     * 2.  not have been processed since the last change to either the file or the checksum
+     */
+    boolean isFileEligibleForProcessing(final File file) {
+        final File md5File = new File(file.getParent(), file.getName() + ".md5");
+        final File logFile = new File(file.getParent(), file.getName() + ".log");
+        if (logFile.exists() && md5File.exists() && logFile.lastModified() > md5File.lastModified() && logFile.lastModified() > file.lastModified()) {
+            // Skip this file because it was processed and a message was logged and nothing has changed since then...
+            return false;
+        } 
+        return file.exists() && md5File.exists();
+    }
     
     /**
      * Checks to determine if a file has completed using the following steps:
@@ -105,7 +127,12 @@ public class DropboxWatcher {
         if (destinationFile.exists()) {
             throw new RuntimeException("  A file with the name " + file.getName() + " already exists in the preservation store.");
         }
-        FileOutputStream fos = new FileOutputStream(destinationFile);
+        File destinationTempFile = new File(tempDirectory, UUID.randomUUID().toString());
+        if (destinationTempFile.exists()) {
+            throw new RuntimeException("  A file with the name " + destinationTempFile.getName() + " already exists in the temp directory.");
+        }
+
+        FileOutputStream fos = new FileOutputStream(destinationTempFile);
         DigestOutputStream dos = new DigestOutputStream(fos, digest);
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -117,15 +144,18 @@ public class DropboxWatcher {
                 if (digestHex.equalsIgnoreCase(providedChecksum)) {
                     if (file.lastModified() != modificationDate) {
                         LOGGER.info("  " + file.getAbsolutePath() + " modified, transaction cancelled.");
-                        destinationFile.delete();
+                        destinationTempFile.delete();
                         return false;
                     } else {
+                        if (!destinationTempFile.renameTo(destinationFile)) {
+                            throw new RuntimeException("Unable to move " + destinationTempFile.getPath() + " to " + destinationFile.getPath() + "!");
+                        }
                         file.delete();
                         LOGGER.info("  " + file.getAbsolutePath() + " deleted from " + dropboxDirectory.getPath() + ".");
                         return true;
                     }
                 } else {
-                    destinationFile.delete();
+                    destinationTempFile.delete();
                     LOGGER.info("  " + file.getAbsolutePath() + " had a checksum mismatch: transaction cancelled.");
                     throw new RuntimeException("Checksum mismatch for " + file.getName() + "! (" + providedChecksum + " != " + digestHex + ")");
                 }
@@ -154,8 +184,40 @@ public class DropboxWatcher {
 
     private class WatchRunnable implements Runnable {
     
+        
+        /** 
+         * A polling implementation.
+         */
         @Override
         public void run() {
+            while (!Thread.interrupted()) {
+                LOGGER.debug("Checking for eligible files in " + dropboxDirectory.getPath());
+                pollForNewEligibleFiles(dropboxDirectory);
+                try {
+                    Thread.sleep(POLL_INTERVAL);
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+            LOGGER.info("WatchRunnable stopped!");
+        }
+        
+        public void pollForNewEligibleFiles(final File f) {
+            if (f.isDirectory()) {
+                for (final File child : f.listFiles()) {
+                    pollForNewEligibleFiles(child);
+                }
+            } else {
+                if (isFileEligibleForProcessing(f)) {
+                    synchronized (fileQueue) {
+                        fileQueue.add(f);
+                    }
+                }
+            }
+        }
+        
+        /*
+        public void runWatching() {
             try {
                 Path path = dropboxDirectory.toPath();
                 WatchService watchService = path.getFileSystem().newWatchService();
@@ -204,8 +266,9 @@ public class DropboxWatcher {
             }
             LOGGER.info("Directory Watcher ended [" + dropboxDirectory.getAbsolutePath() + "]");
         }
-        
+        */
     }
+    
     
     private class MoveRunnable implements Runnable {
 
