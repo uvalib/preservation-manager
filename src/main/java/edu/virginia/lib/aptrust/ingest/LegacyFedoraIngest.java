@@ -33,6 +33,7 @@ public class LegacyFedoraIngest extends AbstractIngest {
     public static void main(String [] args) throws Exception {
         Properties p = new Properties();
         FileInputStream fis = new FileInputStream("fedora-prod01-ingest.properties");
+        
         try {
             p.load(fis);
         } finally {
@@ -82,7 +83,7 @@ public class LegacyFedoraIngest extends AbstractIngest {
                     final String pid = line.substring(12,firstComma);
                     final String title = line.substring(firstComma + 1);
                     final String virgoUrl = getVirgoUrl(pid);
-                    final URI uri = createOrLocateTypedResource(collectionUri.toString(), pid, new URI(RdfConstants.EXTERNAL_RESOURCE_TYPE), false, true, new ResourceInitializer() {
+                    final URI uri = createOrLocateTypedResource(collectionUri.toString(), pid, new URI(RdfConstants.EXTERNAL_RESOURCE_TYPE), false, false, new ResourceInitializer() {
 
                         @Override
                         public void initializeResource(URI uri) throws UnsupportedEncodingException, URISyntaxException, FcrepoOperationFailedException {

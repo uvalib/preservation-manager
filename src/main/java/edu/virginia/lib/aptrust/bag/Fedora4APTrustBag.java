@@ -7,11 +7,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,9 +83,10 @@ public class Fedora4APTrustBag extends APTrustBag {
         tempFiles = new ArrayList<File>();
 
         // export resource to a temp file
-        File export = exportF4ResouceToTempFile(uri.toString(), FEDORA4_JCR_EXPORT);
-        payloadFiles.add(export);
-        tempFiles.add(export);
+        // currently there's no valid export on fedora 4.7
+        //File export = exportF4ResouceToTempFile(uri.toString(), FEDORA4_JCR_EXPORT);
+        //payloadFiles.add(export);
+        //tempFiles.add(export);
 
         Model m = f4client.getAllProperties(uri);
 
@@ -97,6 +100,26 @@ public class Fedora4APTrustBag extends APTrustBag {
             final String externalId = Fedora4Client.getFirstPropertyValue(m, uri, RdfConstants.EXTERNAL_ID);
             final String externalSystemId = Fedora4Client.getFirstPropertyValue(m, uri, RdfConstants.EXTERNAL_SYSTEM);
             final File file = downloadURIToTempFile(triplestore.getFirstAndOnlyQueryResponse("SELECT ?t WHERE { <" + externalSystemId.toString() + "> <" + RdfConstants.DC_IDENTIFIER + "> ?t }").get("t") + "/objects/" + externalId + "/export?context=archive", FEDORA3_EXPORT);
+            payloadFiles.add(file);
+            tempFiles.add(file);
+        }
+        
+        // for ArchiveIt crawls, include the seed information from the collection
+        if (Fedora4Client.hasType(m, uri.toString(), RdfConstants.ARCHIVE_IT_CRAWL_TYPE)) {
+            final String seedListUrl = triplestore.getFirstAndOnlyQueryResponse("PREFIX pres: <http://fedora.lib.virginia.edu/preservation#>\n" + 
+                    "\n" + 
+                    "SELECT ?seedlist\n" + 
+                    "WHERE {\n" + 
+                    "  <http://fedora4test.lib.virginia.edu:8080/fcrepo/rest/archiveIt/77/80/4e/85/77804e85-39b1-47a2-a3e4-77da384d6a8d/d8/e8/0c/a9/d8e80ca9-aa02-40b7-8e3e-4253756ccb73> <http://fedora.info/definitions/v4/repository#hasParent> ?collection .\n" + 
+                    "  ?collection pres:hasWarcSeedList ?seedlist .\n" + 
+                    "}").get("seedlist");
+            final File file = getNamedTempFile("collection-seed-list.csv");
+            FileOutputStream fos = new FileOutputStream(file);
+            try {
+                f4client.download(URI.create(seedListUrl), fos);
+            } finally {
+                fos.close();
+            }
             payloadFiles.add(file);
             tempFiles.add(file);
         }
@@ -130,14 +153,21 @@ public class Fedora4APTrustBag extends APTrustBag {
             } else if (Fedora4Client.hasType(containedM,  containedUri.toString(), RdfConstants.EXTERNAL_RESOURCE_TYPE)) {
                 final String externalId = Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.EXTERNAL_ID);
                 final String externalSystemId = Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.EXTERNAL_SYSTEM);
+                final String dcIdentifier = Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.DC_IDENTIFIER);
                 if (nestedExternalSystemResourceURI == null) {
                     nestedExternalSystemResourceURI = new URI(externalSystemId);
                 } else if (!nestedExternalSystemResourceURI.equals(new URI(externalSystemId))) {
                     throw new RuntimeException("Nested system mismatch for " + containedUri + ": " + externalSystemId + " != " + nestedExternalSystemResourceURI);
                 }
-                final File file = downloadURIToTempFile(triplestore.getFirstAndOnlyQueryResponse("SELECT ?t WHERE { <" + externalSystemId.toString() + "> <" + RdfConstants.DC_IDENTIFIER + "> ?t }").get("t") + "/objects/" + externalId + "/export?context=archive", externalId + ".xml");
-                payloadFiles.add(file);
-                tempFiles.add(file);
+                if (!externalId.startsWith("http")) {
+                    final File file = downloadURIToTempFile(triplestore.getFirstAndOnlyQueryResponse("SELECT ?t WHERE { <" + externalSystemId.toString() + "> <" + RdfConstants.DC_IDENTIFIER + "> ?t }").get("t") + "/objects/" + externalId + "/export?context=archive", externalId + ".xml");
+                    payloadFiles.add(file);
+                    tempFiles.add(file);
+                } else {
+                    final File file = downloadURIToTempFile(externalId, dcIdentifier);
+                    payloadFiles.add(file);
+                    tempFiles.add(file);
+                }
             } else {
                 LOGGER.info("Skipping contained resource " + containedUri + " because it wasn't binary.");
             }
@@ -153,7 +183,7 @@ public class Fedora4APTrustBag extends APTrustBag {
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(readmeFile)));
         try {
             // Include
-            // 1. server hosting the cannonical object (fedora 4 staging repository)
+            // 1. server hosting the canonical object (fedora 4 staging repository)
             pw.println(uri);
             pw.println("This is a package from the University of Virginia meant for long-term " +
                        "preservation in AP Trust.");
@@ -161,50 +191,40 @@ public class Fedora4APTrustBag extends APTrustBag {
             pw.println();
 
             // 2. rights information as best known
-            final boolean isFile = Fedora4Client.hasType(rdfProperties, uri.toString(), RdfConstants.FILE_TYPE);
-            List<Map<String, String>> vars = null;
-            if (isFile) {
-                vars = triplestore.getQueryResponse("SELECT distinct ?r ?rt ?rd\n" +
-                        "WHERE {\n" +
-                        "  ?owner <http://fedora.lib.virginia.edu/preservation#hasFile> <" + uri + "> .\n" +
-                        "  ?owner  <http://purl.org/dc/terms/rights> ?r .\n" +
-                        "  ?r <http://purl.org/dc/elements/1.1/title> ?rt .\n" +
-                        "  ?r <http://www.w3.org/2004/02/skos/core#definition> ?rd\n" +
-                        "}");
-            } else {
-                vars = triplestore.getQueryResponse("SELECT ?r ?rt ?rd\n" +
-                        "WHERE {\n" +
-                        "  <" + uri + "> <http://purl.org/dc/terms/rights> ?r .\n" +
-                        "  ?r <http://purl.org/dc/elements/1.1/title> ?rt .\n" +
-                        "  ?r <http://www.w3.org/2004/02/skos/core#definition> ?rd\n" +
-                        "}");
-            }
-            if (!vars.isEmpty()) {
-                pw.println("Rights Information:\n");
-            }
-            for (Map<String, String> rightsStatement : vars) {
-                pw.println(rightsStatement.get("rt"));
-                pw.println(rightsStatement.get("r"));
-                pw.println(rightsStatement.get("rd"));
-                pw.println();
-            }
-            pw.println();
-
+            pw.println(getRightsStatement(rdfProperties));
+            
             // 3. info about original system
             if (Fedora4Client.hasType(rdfProperties, uri.toString(), RdfConstants.EXTERNAL_RESOURCE_TYPE)) {
                 final URI externalSystemURI = new URI(Fedora4Client.getFirstPropertyValue(rdfProperties, uri, RdfConstants.EXTERNAL_SYSTEM));
                 Model externalSystemRdf = f4client.getAllProperties(externalSystemURI);
-                pw.println(FEDORA3_EXPORT + " is exported from " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, externalSystemURI, RdfConstants.DCTERMS_DESCRIPTION));
-                pw.println("Service URL: " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, externalSystemURI, RdfConstants.DC_IDENTIFIER));
-                pw.println("PID: " + Fedora4Client.getFirstPropertyValue(rdfProperties, uri, RdfConstants.EXTERNAL_ID));
-                pw.println();
+                final String note = Fedora4Client.getFirstPropertyValue(externalSystemRdf,  nestedExternalSystemResourceURI,  RdfConstants.SKOS_NAMESPACE + "note");
+                if (note == null) {
+                    pw.println(FEDORA3_EXPORT + " is exported from " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, externalSystemURI, RdfConstants.DCTERMS_DESCRIPTION));
+                    pw.println("Service URL: " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, externalSystemURI, RdfConstants.DC_IDENTIFIER));
+                    pw.println("PID: " + Fedora4Client.getFirstPropertyValue(rdfProperties, uri, RdfConstants.EXTERNAL_ID));
+                    pw.println();
+                } else {
+                    pw.println(note);
+                    pw.println();
+                }
             }
             if (nestedExternalSystemResourceURI != null) {
                 Model externalSystemRdf = f4client.getAllProperties(nestedExternalSystemResourceURI);
-                pw.println("The xml files were exported from " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DCTERMS_DESCRIPTION));
-                pw.println("Service URL: " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DC_IDENTIFIER));
-                pw.println("The individual pids can be gleaned from the filenames which have the pattern {pid}.xml");
-                pw.println();
+                final String note = Fedora4Client.getFirstPropertyValue(externalSystemRdf,  nestedExternalSystemResourceURI,  RdfConstants.SKOS_NAMESPACE + "note");
+                if (note != null) {
+                    pw.println("\nThe data files were exported from " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DCTERMS_DESCRIPTION) + ".");
+                    pw.println(note);                    
+                    if (Fedora4Client.hasType(externalSystemRdf, nestedExternalSystemResourceURI.toString(), RdfConstants.PRESERVATION_PACKAGE_TYPE)) {
+                        pw.println("For more information and a restoration guide, fetch the bag " + bagNameFromURI(nestedExternalSystemResourceURI));
+                    }
+                    pw.println();
+
+                } else {
+                    pw.println("The xml files were exported from " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DCTERMS_DESCRIPTION));
+                    pw.println("Service URL: " + Fedora4Client.getFirstPropertyValue(externalSystemRdf, nestedExternalSystemResourceURI, RdfConstants.DC_IDENTIFIER));
+                    pw.println("The individual pids can be gleaned from the filenames which have the pattern {pid}.xml");
+                    pw.println();
+                }
             }
 
         } finally {
@@ -213,12 +233,98 @@ public class Fedora4APTrustBag extends APTrustBag {
         payloadFiles.add(readmeFile);
         tempFiles.add(readmeFile);
     }
+    
+    public static final String bagNameFromURI(final URI uri) {
+        final String str = uri.toString();
+        return "virginia.edu." + str.substring(str.lastIndexOf('/') + 1) + ".tar";
+    }
+    
+    /**
+     * Gets rights information for the resource described by the given RDF properties.  This 
+     * method uses several techniques to try to identify the rights statement that applies.
+     * 
+     * If none can be found, it returns "Rights Unknown".
+     */  
+    private String getRightsStatement(Model rdfProperties) throws IOException, URISyntaxException {
+        StringBuffer sb = new StringBuffer();
+        final boolean isFile = Fedora4Client.hasType(rdfProperties, uri.toString(), RdfConstants.FILE_TYPE);
+        List<Map<String, String>> vars = null;
+        if (isFile) {
+            vars = triplestore.getQueryResponse("SELECT distinct ?r ?rt ?rd\n" +
+                    "WHERE {\n" +
+                    "  ?owner <http://fedora.lib.virginia.edu/preservation#hasFile> <" + uri + "> .\n" +
+                    "  ?owner  <http://purl.org/dc/terms/rights> ?r .\n" +
+                    "  ?r <http://purl.org/dc/elements/1.1/title> ?rt .\n" +
+                    "  ?r <http://www.w3.org/2004/02/skos/core#definition> ?rd\n" +
+                    "}");
+        } else {
+            vars = triplestore.getQueryResponse("SELECT ?r ?rt ?rd\n" +
+                    "WHERE {\n" +
+                    "  <" + uri + "> <http://purl.org/dc/terms/rights> ?r .\n" +
+                    "  ?r <http://purl.org/dc/elements/1.1/title> ?rt .\n" +
+                    "  ?r <http://www.w3.org/2004/02/skos/core#definition> ?rd\n" +
+                    "}");
+        }
+        if (!vars.isEmpty()) {
+            sb.append("Rights Statement:\n");
+            for (Map<String, String> rightsStatement : vars) {
+                sb.append(rightsStatement.get("rt") + "\n");
+                sb.append(rightsStatement.get("r") + "\n");
+                sb.append(rightsStatement.get("rd") + "\n");
+                sb.append("\n");
+            }
+        } else {
+            vars = triplestore.getQueryResponse("SELECT ?r \n" +
+                    "WHERE {\n" +
+                    "  <" + uri + "> <http://purl.org/dc/terms/rights> ?r .\n" +
+                    "}");
+            if (!vars.isEmpty()) {
+                sb.append("Rights Statement:\n");
+                for (Map<String, String> rightsStatement : vars) {
+                    final String r = rightsStatement.get("r");
+                    try {
+                        sb.append(summarizeLinkedRightsStatement(new URI(r)) + "\n");
+                    } catch (URISyntaxException ex) {
+                        sb.append(r + "\n");
+                    }
+                }    
+            } else {
+                sb.append("Rights Unknown");
+            }
+        }
+        return sb.toString();
+    }
 
+    /**
+     * This should resolve or look up an external rights statement and provide
+     * a concise human readable summary.
+     */
+    private static final String summarizeLinkedRightsStatement(final URI uri) {
+        if (uri.toString().equals("http://rightsstatements.org/vocab/CNE/1.0/")) {
+            return "Copyright Not Evaluated (" + uri.toString() + ")";
+        } else {
+            return uri.toString();
+        }
+        
+    }
 
-    private File downloadURIToTempFile(String url, String filename) throws IOException, URISyntaxException {
-        final URI uri = new URI(url);
-        File export = new File(workingDir, filename != null ? filename : uri.getHost() + "-" + uri.getPort() + "-" + uri.getPath());
+    private File getNamedTempFile(String filename) {
+        File export = new File(workingDir, filename);
         export.getParentFile().mkdirs();
+        if (export.exists()) {
+            throw new RuntimeException("File already exists! " + export.getAbsolutePath());
+        }
+        return export;
+    }
+    
+    private File downloadURIToTempFile(String url, String filename) throws IOException, URISyntaxException {
+        File export = null;
+        if (filename == null) {
+            final URI uri = new URI(url);
+            export = getNamedTempFile(uri.getHost() + "-" + uri.getPort() + "-" + uri.getPath());
+        } else {
+            export = getNamedTempFile(filename);
+        }
         if (export.exists()) {
             throw new RuntimeException("File already exists! " + export.getAbsolutePath());
         }

@@ -30,6 +30,13 @@ public interface RdfConstants {
     String EXTERNAL_SYSTEM = UVA_PRESERVATION_NAMESPACE + "externalSystem";
 
     /**
+     * A URI (also a URL) that can be used to get a lossless and complete export of 
+     * the resource from the external system.
+     */
+    String EXTERNAL_SYSTEM_EXPORT = UVA_PRESERVATION_NAMESPACE + "externalSystemExportUrl";
+
+    
+    /**
      * The class (rdf:type) of a resource representing an instance of an external
      * System.
      */
@@ -110,6 +117,16 @@ public interface RdfConstants {
     String PRES_BAG_PAYLOAD_SIZE = UVA_PRESERVATION_NAMESPACE + "bagPayloadSize";
     
     String PRES_HAS_BAG_MANIFEST = UVA_PRESERVATION_NAMESPACE + "hasBagManifest";
+    
+    String MD5_HASH = "http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5";
+    
+    String ARCHIVE_IT_COLLECTION_TYPE = UVA_PRESERVATION_NAMESPACE + "ArchiveItCollection";
+    
+    String ARCHIVE_IT_CRAWL_TYPE = UVA_PRESERVATION_NAMESPACE + "ArchiveItCrawl";
+    
+    String ARCHIVE_IT_WARC_TYPE = UVA_PRESERVATION_NAMESPACE + "ArchiveItWarc";
+    
+    String PRES_HAS_SEED_LIST = UVA_PRESERVATION_NAMESPACE + "hasWarcSeedList";
     
     /**
      * A predicate that links any resource with a pres:File resource whose binary describes
