@@ -34,4 +34,11 @@ public class Libra1ResubmissionBag extends APTrustBag {
     protected void freePayloadFile(File file) throws Exception {
         // do nothing
     }
+
+    @Override
+    protected String getInstitutionalId() {
+        return "virginia.edu";
+    }
+
+
 }
