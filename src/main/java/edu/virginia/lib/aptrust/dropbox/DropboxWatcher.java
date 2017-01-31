@@ -73,6 +73,7 @@ public class DropboxWatcher {
     }
 
     Pattern WINDOWS_MD5_FILE = Pattern.compile("MD5 hash of file.*([0-9a-f][0-9a-f]( [0-9a-f][0-9a-f]){15}+).*", Pattern.DOTALL);
+    Pattern DEFAULT_MD5 = Pattern.compile(".*([0-9a-f][0-9a-f]{32}).*");
     
     /**
      * A quick check to determine if its worth the time to process a file.  To be 
@@ -109,8 +110,11 @@ public class DropboxWatcher {
             Matcher m = WINDOWS_MD5_FILE.matcher(providedChecksum);
             if (m.matches()) {
                 providedChecksum = m.group(1).replaceAll(" ", "");
-            } else if (providedChecksum.length() > 32) {
-                providedChecksum = providedChecksum.substring(0, 32);
+            } else {
+                m = DEFAULT_MD5.matcher(providedChecksum);
+                if (m.matches()) {
+                    providedChecksum = m.group(1);
+                }
             }
             try {
                 digest = MessageDigest.getInstance("MD5");
