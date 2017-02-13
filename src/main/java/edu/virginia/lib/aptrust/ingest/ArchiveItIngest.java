@@ -44,7 +44,7 @@ import edu.virginia.lib.aptrust.helper.FusekiReader;
  */
 public class ArchiveItIngest extends AbstractIngest implements RdfConstants {
     
-    private static final String COPYRIGHT_NOT_EVALUATED = "http://rightsstatements.org/vocab/CNE/1.0/";
+    private static final String INC_EDU = "http://rightsstatements.org/vocab/InC-EDU/1.0/";
     
     public static void main(String [] args) throws Exception {
         Properties p = new Properties();
@@ -161,7 +161,7 @@ public class ArchiveItIngest extends AbstractIngest implements RdfConstants {
                         @Override
                         public void initializeResource(URI uri) throws UnsupportedEncodingException, URISyntaxException,
                                 FcrepoOperationFailedException, IOException {
-                            f4Writer.addURIProperty(uri, RdfConstants.RIGHTS, new URI(COPYRIGHT_NOT_EVALUATED));
+                            f4Writer.addURIProperty(uri, RdfConstants.RIGHTS, new URI(INC_EDU));
                             
                         }});
                     System.out.println("Added crawl " + crawlUri + ".");
@@ -200,13 +200,18 @@ public class ArchiveItIngest extends AbstractIngest implements RdfConstants {
                 f4Writer.addLiteralProperty(uri, DC_TITLE, title);
                 if (seedList != null) {
                     final URI seedListUri = new URI(uri.toString() + "/collection-seed-list.csv");
-                    f4Writer.replaceNonRDFResource(seedListUri, seedList, "text/csv");
-                    f4Writer.addLiteralProperty(uri, RdfConstants.FILENAME, "collection-seed-list.csv");
+                    f4Writer.replaceNonRDFResource(seedListUri, seedList, "application/octet-stream"); // "text/csv" is treated as RDF by fedora
+                    f4Writer.addLiteralProperty(new URI(seedListUri.toString() + "/fcr:metadata"), RdfConstants.FILENAME, "collection-seed-list.csv");
                     f4Writer.addURIProperty(uri, RdfConstants.PRES_HAS_SEED_LIST, seedListUri);
                 }
                 
             } });
-        
+        if (seedList != null) {
+            final URI seedListUri = new URI(uri.toString() + "/collection-seed-list.csv");
+            f4Writer.replaceNonRDFResource(seedListUri, seedList, "application/octet-stream"); // "text/csv" is treated as RDF by fedora
+            f4Writer.addLiteralProperty(new URI(seedListUri.toString() + "/fcr:metadata"), RdfConstants.FILENAME, "collection-seed-list.csv");
+            f4Writer.addURIProperty(uri, RdfConstants.PRES_HAS_SEED_LIST, seedListUri);
+        }
         return uri;
     }
     

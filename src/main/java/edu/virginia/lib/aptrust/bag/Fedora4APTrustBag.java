@@ -5,15 +5,19 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
+import org.apache.velocity.runtime.RuntimeConstants;
+import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +66,11 @@ public class Fedora4APTrustBag extends APTrustBag {
         workingDir.mkdir();
     }
 
+    public static String getReadmeForURI(final URI uri, Fedora4Client f4client) throws FcrepoOperationFailedException, IOException {
+        Model m = f4client.getAllProperties(uri);
+        return getReadMeText(uri, m, null);
+    }
+    
     @Override
     protected String getItemId() {
         return uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
@@ -178,10 +187,28 @@ public class Fedora4APTrustBag extends APTrustBag {
         return payloadFiles;
     }
 
+    private static String getReadMeText(final URI uri, Model rdfProperties, URI nestedExternalSystemResourceURI) {
+        VelocityEngine ve = new VelocityEngine();
+        ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath"); 
+        ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+        ve.setProperty("runtime.log.logsystem.class", "org.apache.velocity.runtime.log.NullLogSystem");
+        ve.init();
+        Template t = ve.getTemplate("readme.txt.vm");
+        VelocityContext context = new VelocityContext();
+        context.put("uri", uri);
+        context.put("rights", summarizeRightsStatement(Fedora4Client.getFirstPropertyValue(rdfProperties, uri, "http://purl.org/dc/terms/rights")));
+        StringWriter writer = new StringWriter();
+        t.merge( context, writer );
+        return writer.toString();     
+        
+    }
+    
     private void addReadme(Model rdfProperties, URI nestedExternalSystemResourceURI) throws IOException, FcrepoOperationFailedException, URISyntaxException {
         File readmeFile = new File(workingDir, "readme.txt");
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(readmeFile)));
         try {
+            pw.print(getReadMeText(uri, rdfProperties, nestedExternalSystemResourceURI));
+            /*
             // Include
             // 1. server hosting the canonical object (fedora 4 staging repository)
             pw.println(uri);
@@ -226,7 +253,7 @@ public class Fedora4APTrustBag extends APTrustBag {
                     pw.println();
                 }
             }
-
+*/
         } finally {
             pw.close();
         }
@@ -245,7 +272,7 @@ public class Fedora4APTrustBag extends APTrustBag {
      * 
      * If none can be found, it returns "Rights Unknown".
      */  
-    private String getRightsStatement(Model rdfProperties) throws IOException, URISyntaxException {
+    private String getRightsStatement(final Model rdfProperties) throws IOException, URISyntaxException {
         StringBuffer sb = new StringBuffer();
         final boolean isFile = Fedora4Client.hasType(rdfProperties, uri.toString(), RdfConstants.FILE_TYPE);
         List<Map<String, String>> vars = null;
@@ -281,12 +308,7 @@ public class Fedora4APTrustBag extends APTrustBag {
             if (!vars.isEmpty()) {
                 sb.append("Rights Statement:\n");
                 for (Map<String, String> rightsStatement : vars) {
-                    final String r = rightsStatement.get("r");
-                    try {
-                        sb.append(summarizeLinkedRightsStatement(new URI(r)) + "\n");
-                    } catch (URISyntaxException ex) {
-                        sb.append(r + "\n");
-                    }
+                    sb.append(summarizeRightsStatement(rightsStatement.get("r")) + "\n");
                 }    
             } else {
                 sb.append("Rights Unknown");
@@ -299,13 +321,19 @@ public class Fedora4APTrustBag extends APTrustBag {
      * This should resolve or look up an external rights statement and provide
      * a concise human readable summary.
      */
-    private static final String summarizeLinkedRightsStatement(final URI uri) {
-        if (uri.toString().equals("http://rightsstatements.org/vocab/CNE/1.0/")) {
-            return "Copyright Not Evaluated (" + uri.toString() + ")";
+    private static final String summarizeRightsStatement(final String value) {
+        if (value == null) {
+            return "Copyright Not Evaluated (http://rightsstatements.org/vocab/CNE/1.0/)";
+        } 
+        if (value.equals("http://rightsstatements.org/vocab/CNE/1.0/")) {
+            return "Copyright Not Evaluated (http://rightsstatements.org/vocab/CNE/1.0/)";
+        } else if (value.equals("http://rightsstatements.org/vocab/NKC/1.0/")) {
+            return "No Known Copyright (http://rightsstatements.org/vocab/NKC/1.0/)";
+        } else if (value.equals("http://rightsstatements.org/vocab/InC-EDU/1.0/")) {
+            return "In Copyright - Educational Use Permitted (http://rightsstatements.org/vocab/InC-EDU/1.0/)";
         } else {
-            return uri.toString();
+            return value.toString();
         }
-        
     }
 
     private File getNamedTempFile(String filename) {

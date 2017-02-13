@@ -1,0 +1,52 @@
+$uri
+
+This is a package from the University of Virginia meant for long-term preservation in AP Trust.
+http://academicpreservationtrust.org/
+
+1. Rights Statement
+2. Archive It Data files
+	a. Web archive file format (WARC file)
+	b. Collection Seed list
+
+3. Fedora Files
+	 *(TBD) Exported Fedora 4 resource file?*
+4. Restoration & Use Guide
+	a. Local WARC file restoration & use using software restoration bag 
+	b. Wayback Machine restoration & use using seed list
+
+
+1. Rights Statement:
+#if( $rights )
+$rights
+#else
+Copyright Not Evaluated (http://rightsstatements.org/vocab/CNE/1.0/)
+#end
+
+
+2. Archive It Data files:
+The data files in this package were exported from the University of Virginia's paid ArchiveIt (AIT) subscription. ArchiveIt is a service offered by the Internet Archive to archive websites. These files are:
+
+	a. The web archive file format (WARC file)
+
+WARC file format is an ISO standard (28500) used to store web crawls as sequences of content blocks.
+http://www.digitalpreservation.gov/formats/fdd/fdd000236.shtml
+
+WARC Naming convention key. Name structure is formatted by AIT. 
+
+[NameOfService("ARCHIVEIT")]-[UvaCollectionID("7512")]-[TypeOfCrawl("One_Time")]-[AITJobID("Job240530")]-[DateOfCrawl("20161005")]-[SerializedNumberOfTotalWARCFilesForCollection("00000")].warc.gz
+
+Example: ARCHIVEIT-7512-ONE_TIME-JOB240530-20161005140055245-00000.warc.gz
+
+	b. collection-seed-list.csv 
+
+This file contains all URLs for websites represented in the WARC file for this specific crawl.
+
+3. Fedora files
+
+	 *(TBD) - placeholder for potential Fedora 4 resource file*
+
+4. Restoration & Use Guide
+
+	a. To view WARC files locally, web archive player software and install instructions are located in AP Trust in the restoration bag virginia.edu.c8eae645-2ea3-4ab5-9eb5-d101ea4e687b.tar. 
+
+	b. Alternatively, the collection-seed-list.csv URLs can be reviewed individually using Internet Archive's Wayback Machine: http://archive.org/web/web.php

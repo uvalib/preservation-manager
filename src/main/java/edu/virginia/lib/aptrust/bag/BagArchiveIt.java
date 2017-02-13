@@ -92,6 +92,7 @@ public class BagArchiveIt {
                 "  }\n" + 
                 "}";
         LOGGER.info("Querying for ArchiveIt crawls...");
+        LOGGER.info(toIngestQuery);
         for (Map<String, String> m : triplestore.getQueryResponse(toIngestQuery)) {
             final URI uri = new URI(m.get("crawl"));
             LOGGER.info("Bagging " + uri + "...");
