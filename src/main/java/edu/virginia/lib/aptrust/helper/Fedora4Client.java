@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -37,7 +38,7 @@ public class Fedora4Client {
     static {
         namespaceToPrefixMap.put(RdfConstants.SKOS_NAMESPACE, "skos");
         namespaceToPrefixMap.put(RdfConstants.PCDM_NAMESPACE, "pcdm");
-        namespaceToPrefixMap.put(RdfConstants.UVA_PRESERVATION_NAMESPACE, "pres");
+        namespaceToPrefixMap.put(RdfConstants.UVA_PRESERVATION_NAMESPACE, "pres4");
         namespaceToPrefixMap.put("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "rdf");
         namespaceToPrefixMap.put("http://purl.org/dc/elements/1.1/", "dc");
         namespaceToPrefixMap.put("http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#", "ebucore");
@@ -110,6 +111,18 @@ public class Fedora4Client {
         assertSuccess(r);
         LOGGER.debug("Created new resource " + r.getLocation() + ".");
         return r.getLocation();
+    }
+
+    public URI createResourceWithTriples(final String rootContainer, final File turtle) throws FcrepoOperationFailedException, URISyntaxException, IOException {
+        FileInputStream is = new FileInputStream(turtle);
+        try {
+            FcrepoResponse r = getClient().post(rootContainer != null ? (rootContainer.startsWith(baseUri.toString()) ? new URI(rootContainer) : new URI(baseUri.toString() + "/" + rootContainer)) : baseUri, is, "text/turtle");
+            assertSuccess(r);
+            LOGGER.debug("Created new resource " + r.getLocation() + ".");
+            return r.getLocation();
+        } finally {
+            is.close();
+        }
     }
     
     public URI createNamedResource(final String path) throws FcrepoOperationFailedException, URISyntaxException {

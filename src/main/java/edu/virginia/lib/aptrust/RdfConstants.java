@@ -5,7 +5,7 @@ package edu.virginia.lib.aptrust;
  */
 public interface RdfConstants {
 
-    String UVA_PRESERVATION_NAMESPACE = "http://fedora.lib.virginia.edu/preservation#";
+    String UVA_PRESERVATION_NAMESPACE = "http://ontology.lib.virginia.edu/preservation#";
     String SKOS_NAMESPACE = "http://www.w3.org/2004/02/skos/core#";
     String PCDM_NAMESPACE = "http://pcdm.org/models#";
     String PREMIS_NAMESPACE = "http://www.loc.gov/premis/rdf/v1#";
@@ -72,6 +72,11 @@ public interface RdfConstants {
      * A predicate that links a pres:File resource to the single contained binary resource.
      */
     String HAS_BINARY = UVA_PRESERVATION_NAMESPACE + "hasBinary";
+
+    /**
+     * A predicate that links a pres:File resource to a File on disk that isn't managed by Fedora.
+     */
+    String HAS_LOCAL_PATH = UVA_PRESERVATION_NAMESPACE + "hasLocalPath";
     
     /**
      * The class URI for Preservation Events.
@@ -107,7 +112,9 @@ public interface RdfConstants {
      * @deprecated
      */
     String PRES_HAS_FAILED_EVENT = UVA_PRESERVATION_NAMESPACE + "hasFailedEvent";
-    
+
+    String PRES_HAS_README = UVA_PRESERVATION_NAMESPACE + "hasReadMeFile";
+
     String PREMIS_HAS_EVENT_TYPE = PREMIS_NAMESPACE + "hasEventType";
     
     String PREMIS_HAS_EVENT_DATE = PREMIS_NAMESPACE + "hasEventDateTime";
@@ -115,10 +122,12 @@ public interface RdfConstants {
     String PRES_BAG_ID = UVA_PRESERVATION_NAMESPACE + "aptrustEtag";
     String PRES_BAG_SIZE = UVA_PRESERVATION_NAMESPACE + "bagSize";
     String PRES_BAG_PAYLOAD_SIZE = UVA_PRESERVATION_NAMESPACE + "bagPayloadSize";
+    String PRES_BAG_NAME = UVA_PRESERVATION_NAMESPACE + "bagName";
     
     String PRES_HAS_BAG_MANIFEST = UVA_PRESERVATION_NAMESPACE + "hasBagManifest";
     
     String MD5_HASH = "http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5";
+    String SHA256_HASH = "http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256";
     
     String ARCHIVE_IT_COLLECTION_TYPE = UVA_PRESERVATION_NAMESPACE + "ArchiveItCollection";
     

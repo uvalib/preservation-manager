@@ -97,7 +97,7 @@ public class BagArchiveIt {
             final URI uri = new URI(m.get("crawl"));
             LOGGER.info("Bagging " + uri + "...");
             Fedora4APTrustBag bag = new Fedora4APTrustBag(new BagInfo().sourceOrganization("virginia.edu"),
-                    new APTrustInfo(m.get("crawlTitle") + " crawl of \"" + m.get("collectionTitle") + "\"", APTrustInfo.CONSORTIA), uri, f4Client, triplestore);
+                    new APTrustInfo(m.get("crawlTitle") + " crawl of \"" + m.get("collectionTitle") + "\"", APTrustInfo.CONSORTIA), uri, f4Client, triplestore, null);
             LOGGER.debug("Creating and transferring bag for " + uri + " at " + new Date() + "...");
             BagSummary bs = bag.serializeAPTrustBag(new File("output"), true);
             LOGGER.debug(bs.getManifestCopy());
@@ -136,7 +136,7 @@ public class BagArchiveIt {
             final URI uri = new URI(m.get("crawl"));
             LOGGER.info("Bagging " + uri + "...");
             Fedora4APTrustBag bag = new Fedora4APTrustBag(new BagInfo().sourceOrganization("virginia.edu"),
-                    new APTrustInfo(m.get("crawlTitle") + " crawl of \"" + m.get("collectionTitle") + "\"", APTrustInfo.CONSORTIA), uri, f4Client, triplestore);
+                    new APTrustInfo(m.get("crawlTitle") + " crawl of \"" + m.get("collectionTitle") + "\"", APTrustInfo.CONSORTIA), uri, f4Client, triplestore, null);
             LOGGER.debug("Creating and transferring bag for " + uri + " at " + new Date() + "...");
             BagSummary bs = bag.serializeAPTrustBag(new File("output"), false);
             LOGGER.debug(bs.getManifestCopy());

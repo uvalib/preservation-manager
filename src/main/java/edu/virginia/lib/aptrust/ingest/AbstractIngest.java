@@ -24,7 +24,7 @@ import java.net.URLDecoder;
 
 public abstract class AbstractIngest {
 	
-	final private static int MS_TO_WAIT = 150;
+	final static int MS_TO_WAIT = 150;
 
     final private static Logger LOGGER = LoggerFactory.getLogger(AbstractIngest.class);
 

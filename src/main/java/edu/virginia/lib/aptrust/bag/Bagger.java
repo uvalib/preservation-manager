@@ -66,7 +66,7 @@ public class Bagger {
         // create bag
         final URI uri = new URI("http://fedora01.lib.virginia.edu:8080/fcrepo/rest/libra");
         Fedora4APTrustBag bag = new Fedora4APTrustBag(new BagInfo().sourceOrganization("virginia.edu"),
-                new APTrustInfo("Libra: Online Archive of University of Virginia Scholarship", APTrustInfo.CONSORTIA), uri, f4Client, triplestore);
+                new APTrustInfo("Libra: Online Archive of University of Virginia Scholarship", APTrustInfo.CONSORTIA), uri, f4Client, triplestore, null);
         LOGGER.debug("Creating and transferring bag for " + uri + " at " + new Date() + "...");
         BagSummary bs = bag.serializeAPTrustBag(new File("output"), true);
         LOGGER.debug(bs.getManifestCopy());
@@ -104,7 +104,7 @@ public class Bagger {
                                 f4Client.getAllProperties(new URI(uri + "/fcr:metadata")), new URI(uri),
                                 RdfConstants.DC_TITLE);
                         Fedora4APTrustBag bag = new Fedora4APTrustBag(new BagInfo().sourceOrganization("virginia.edu"),
-                                new APTrustInfo(title, APTrustInfo.CONSORTIA), new URI(uri), f4Client, triplestore);
+                                new APTrustInfo(title, APTrustInfo.CONSORTIA), new URI(uri), f4Client, triplestore, null);
 
                         LOGGER.debug("Creating and transferring bag for " + uri + " at " + new Date() + "...");
                         BagSummary bs = bag.serializeAPTrustBag(new File("output"), true);

@@ -1,5 +1,6 @@
 package edu.virginia.lib.aptrust.bag;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -57,12 +58,12 @@ public class Fedora4APTrustBag extends APTrustBag {
 
     private File workingDir;
 
-    public Fedora4APTrustBag(BagInfo bagInfo, APTrustInfo aptrustInfo, URI fedora4uri, Fedora4Client f4client, FusekiReader triplestore) {
+    public Fedora4APTrustBag(BagInfo bagInfo, APTrustInfo aptrustInfo, URI fedora4uri, Fedora4Client f4client, FusekiReader triplestore, final File workingRoot) {
         super(bagInfo, aptrustInfo);
         this.uri = fedora4uri;
         this.f4client = f4client;
         this.triplestore = triplestore;
-        workingDir = new File("work");
+        workingDir = workingRoot == null ? new File("work") : new File(workingRoot, "work");
         workingDir.mkdir();
     }
 
@@ -134,13 +135,15 @@ public class Fedora4APTrustBag extends APTrustBag {
         }
 
 
-        // locate or export any contained binaries or ExternalResource's
+        // locate or export any contained binaries, ExternalResource's or referenced local files
         URI nestedExternalSystemResourceURI = null;
         for (RDFNode n : f4client.getPropertyValues(uri, uri, RdfConstants.LDP_CONTAINS)) {
             final URI containedUri = new URI(n.asResource().getURI());
             final URI metadataUri = new URI(containedUri.toString() + "/fcr:metadata");
             Model containedM = f4client.getAllProperties(metadataUri);
-            if (Fedora4Client.hasType(containedM, containedUri.toString(), RdfConstants.FEDORA_BINARY)) {
+            if (Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.HAS_LOCAL_PATH) != null) {
+                payloadFiles.add(new File(Fedora4Client.getFirstPropertyValue(containedM, containedUri, RdfConstants.HAS_LOCAL_PATH)));
+            } else if (Fedora4Client.hasType(containedM, containedUri.toString(), RdfConstants.FEDORA_BINARY)) {
                 final String mimeType = f4client.getSingleRequiredPropertyValue(metadataUri, new URI(containedUri.toString()), HAS_MIME_TYPE);
                 if (mimeType.startsWith("message/external-body")) {
                     // this is a convention we use to point to an external file... the path of that file is stored elsewhere...
@@ -198,12 +201,18 @@ public class Fedora4APTrustBag extends APTrustBag {
         context.put("uri", uri);
         context.put("rights", summarizeRightsStatement(Fedora4Client.getFirstPropertyValue(rdfProperties, uri, "http://purl.org/dc/terms/rights")));
         StringWriter writer = new StringWriter();
-        t.merge( context, writer );
+        t.merge(context, writer);
         return writer.toString();     
         
     }
     
     private void addReadme(Model rdfProperties, URI nestedExternalSystemResourceURI) throws IOException, FcrepoOperationFailedException, URISyntaxException {
+        final String readmeURIString = Fedora4Client.getFirstPropertyValue(rdfProperties, uri, RdfConstants.PRES_HAS_README);
+        if (readmeURIString != null) {
+            // readme is already included in the payload files
+            return;
+        }
+
         File readmeFile = new File(workingDir, "readme.txt");
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(readmeFile)));
         try {
